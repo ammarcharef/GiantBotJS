@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة المهام</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="glass">
+        <h2>💎 إضافة مهمة جديدة</h2>
+        <input type="text" id="title" placeholder="عنوان المهمة">
+        <input type="url" id="url" placeholder="الرابط (https://...)">
+        <input type="number" id="price" placeholder="السعر الكامل (DZD)">
+        <input type="number" id="sec" placeholder="المدة (ثواني)">
+        <input type="password" id="pass" placeholder="كلمة مرور الأدمن">
+        <button class="btn" onclick="publish()">نشر المهمة</button>
+    </div>
+
+    <script>
+        async function publish() {
+            const data = {
+                title: document.getElementById('title').value,
+                url: document.getElementById('url').value,
+                price: document.getElementById('price').value,
+                seconds: document.getElementById('sec').value,
+                password: document.getElementById('pass').value
+            };
+            const res = await fetch('/api/admin/add', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            const json = await res.json();
+            if(json.success) alert("✅ تم النشر بنجاح!");
+            else alert("❌ خطأ: " + json.error);
+        }
+    </script>
+</body>
+</html>
