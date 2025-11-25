@@ -2,38 +2,143 @@
 <html dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إدارة المهام</title>
+    <title>لوحة القيادة</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+        .stat-card { background: #1e293b; padding: 15px; border-radius: 10px; text-align: center; }
+        .stat-num { font-size: 1.5rem; color: #fbbf24; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+        th, td { padding: 8px; border-bottom: 1px solid #333; text-align: right; }
+        th { color: #fbbf24; }
+        .tab-btn { background: #333; border: none; padding: 10px 20px; color: white; cursor: pointer; }
+        .active-tab { background: #fbbf24; color: black; font-weight: bold; }
+        .section { display: none; }
+    </style>
 </head>
 <body>
-    <div class="glass">
-        <h2>💎 إضافة مهمة جديدة</h2>
-        <input type="text" id="title" placeholder="عنوان المهمة">
-        <input type="url" id="url" placeholder="الرابط (https://...)">
-        <input type="number" id="price" placeholder="السعر الكامل (DZD)">
-        <input type="number" id="sec" placeholder="المدة (ثواني)">
-        <input type="password" id="pass" placeholder="كلمة مرور الأدمن">
-        <button class="btn" onclick="publish()">نشر المهمة</button>
+    <div style="max-width: 800px; margin: auto;">
+        <div class="glass">
+            <h2>👮‍♂️ لوحة القيادة المركزية</h2>
+            <input type="password" id="admin-pass" placeholder="كلمة المرور" style="margin-bottom:10px;">
+            <button class="btn" onclick="loadData()">تسجيل الدخول وتحديث البيانات</button>
+        </div>
+
+        <div class="admin-grid">
+            <div class="stat-card">المستخدمين<div class="stat-num" id="s-users">0</div></div>
+            <div class="stat-card">الأموال الموزعة<div class="stat-num" id="s-money">0</div></div>
+            <div class="stat-card">طلبات السحب<div class="stat-num" id="s-withdraw">0</div></div>
+        </div>
+
+        <br>
+        <div>
+            <button class="tab-btn active-tab" onclick="showTab('users')">المستخدمين</button>
+            <button class="tab-btn" onclick="showTab('tasks')">الإعلانات</button>
+            <button class="tab-btn" onclick="showTab('withdraws')">السحوبات</button>
+        </div>
+
+        <div id="tab-users" class="section glass" style="display:block;">
+            <h3>إدارة المستخدمين</h3>
+            <table id="users-table"><thead><tr><th>الاسم</th><th>الرصيد</th><th>إجراء</th></tr></thead><tbody></tbody></table>
+        </div>
+
+        <div id="tab-tasks" class="section glass">
+            <h3>إضافة إعلان خارجي/داخلي</h3>
+            <input id="t-title" placeholder="العنوان">
+            <input id="t-url" placeholder="الرابط (Smartlink أو قناة)">
+            <input id="t-price" type="number" placeholder="السعر الكامل (DZD)">
+            <input id="t-sec" type="number" placeholder="الثواني">
+            <button class="btn btn-green" onclick="addTask()">نشر الإعلان</button>
+            <hr>
+            <table id="tasks-table"><thead><tr><th>العنوان</th><th>السعر</th><th>حذف</th></tr></thead><tbody></tbody></table>
+        </div>
+
+        <div id="tab-withdraws" class="section glass">
+            <h3>طلبات السحب المعلقة</h3>
+            <table id="withdraw-table"><thead><tr><th>المستخدم</th><th>المبلغ</th><th>بيانات الدفع</th><th>قرار</th></tr></thead><tbody></tbody></table>
+        </div>
     </div>
 
     <script>
-        async function publish() {
-            const data = {
-                title: document.getElementById('title').value,
-                url: document.getElementById('url').value,
-                price: document.getElementById('price').value,
-                seconds: document.getElementById('sec').value,
-                password: document.getElementById('pass').value
-            };
-            const res = await fetch('/api/admin/add', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
+        let password = "";
+        
+        async function loadData() {
+            password = document.getElementById('admin-pass').value;
+            const res = await fetch('/api/admin/data', {
+                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({password})
             });
-            const json = await res.json();
-            if(json.success) alert("✅ تم النشر بنجاح!");
-            else alert("❌ خطأ: " + json.error);
+            const data = await res.json();
+            if(data.error) { alert("كلمة السر خاطئة"); return; }
+
+            // تعبئة الإحصائيات
+            document.getElementById('s-users').innerText = data.stats.totalUsers;
+            document.getElementById('s-money').innerText = data.stats.totalBalance.toFixed(2);
+            document.getElementById('s-withdraw').innerText = data.stats.pendingWithdrawals;
+
+            // تعبئة الجداول
+            fillTable('users-table', data.users, (u) => `
+                <td>${u.fullName || u.name} <br> <small>${u.paymentAccount || 'غير مسجل'}</small></td>
+                <td>${u.balance.toFixed(2)}</td>
+                <td>${u.isBanned ? 'محظور' : `<button onclick="action('ban_user', '${u.id}')" style="color:red">حظر</button>`}</td>
+            `);
+
+            fillTable('tasks-table', data.tasks, (t) => `
+                <td>${t.title} <br> <a href="${t.url}" target="_blank">رابط</a></td>
+                <td>${t.fullPrice}</td>
+                <td><button onclick="action('delete_task', '${t._id}')">❌</button></td>
+            `);
+            
+            // هنا يتم عرض السحوبات ببيانات الدفع الحقيقية
+            fillTable('withdraw-table', data.withdrawals, (w) => `
+                <td>${w.userId}</td>
+                <td style="color:#fbbf24">${w.amount}</td>
+                <td>${w.method} <br> <b>${w.account}</b></td>
+                <td>
+                    <button onclick="action('approve_withdraw', '${w._id}')">✅</button>
+                    <button onclick="action('reject_withdraw', '${w._id}')">❌</button>
+                </td>
+            `);
+        }
+
+        function fillTable(id, list, rowFn) {
+            const tbody = document.querySelector(`#${id} tbody`);
+            tbody.innerHTML = "";
+            list.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = rowFn(item);
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function action(type, id) {
+            if(!confirm("هل أنت متأكد؟")) return;
+            await fetch('/api/admin/action', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({password, type, id})
+            });
+            loadData(); // تحديث
+        }
+
+        async function addTask() {
+            const payload = {
+                title: document.getElementById('t-title').value,
+                url: document.getElementById('t-url').value,
+                fullPrice: document.getElementById('t-price').value,
+                seconds: document.getElementById('t-sec').value
+            };
+            await fetch('/api/admin/action', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({password, type: 'add_task', payload})
+            });
+            alert("تم النشر");
+            loadData();
+        }
+
+        function showTab(name) {
+            document.querySelectorAll('.section').forEach(d => d.style.display = 'none');
+            document.getElementById('tab-' + name).style.display = 'block';
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active-tab'));
+            event.target.classList.add('active-tab');
         }
     </script>
 </body>
