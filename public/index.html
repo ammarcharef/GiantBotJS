@@ -3,17 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الرئيسية</title>
+    <title>المنصة</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        /* إضافة تصميم خاص للتسجيل */
+        .reg-form { display: none; }
+        .locked-field { background: #333; color: #777; border: 1px solid #555; cursor: not-allowed; }
+    </style>
 </head>
 <body>
-    <div class="glass" style="text-align:center">
-        <p>الرصيد الحالي</p>
-        <h1 style="font-size: 2.5rem"><span id="balance">0.00</span> DZD</h1>
+    <div id="registration-section" class="glass reg-form">
+        <h2>📝 استكمال البيانات</h2>
+        <p style="color:#fbbf24; font-size:0.9rem;">⚠️ هام: بيانات الدفع لا يمكن تغييرها لاحقاً!</p>
+        
+        <label>الاسم الكامل</label>
+        <input type="text" id="reg-name" placeholder="الاسم واللقب">
+        
+        <label>رقم الهاتف</label>
+        <input type="tel" id="reg-phone" placeholder="06/07...">
+        
+        <label>العنوان (الولاية)</label>
+        <input type="text" id="reg-address" placeholder="العنوان">
+
+        <hr style="border-color: #333; margin: 15px 0;">
+        <h3>💳 معلومات الاستلام</h3>
+        
+        <label>وسيلة الدفع</label>
+        <select id="reg-method" style="width:100%; padding:10px; background:#1e293b; color:white; border-radius:8px;">
+            <option value="CCP">بريد الجزائر (CCP)</option>
+            <option value="BaridiMob">BaridiMob</option>
+        </select>
+
+        <label>رقم الحساب (RIP/CCP)</label>
+        <input type="text" id="reg-account" placeholder="أدخل الرقم بدقة">
+
+        <label>إنشاء كلمة مرور للسحب (تذكرها جيداً)</label>
+        <input type="password" id="reg-pass" placeholder="*****">
+
+        <button class="btn btn-green" onclick="saveProfile()">حفظ وبدء العمل ✅</button>
     </div>
 
-    <div id="tasks-list"></div>
+    <div id="main-dashboard" style="display:none;">
+        <div class="glass" style="text-align:center;">
+            <p>الرصيد الحالي</p>
+            <h1 style="color:#fbbf24"><span id="balance">0.00</span> DZD</h1>
+            <p style="font-size:0.8rem; color:#ccc;">المعرف الخاص: <span id="user-ref">...</span></p>
+        </div>
+
+        <h3>🔥 المهام المتاحة</h3>
+        <div id="tasks-list"></div>
+    </div>
 
     <script src="script.js"></script>
 </body>
