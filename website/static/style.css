@@ -1,0 +1,179 @@
+:root {
+    --bg-color: #0f172a;       
+    --card-bg: rgba(30, 41, 59, 0.7); 
+    --primary-gold: #fbbf24;   
+    --text-white: #f8fafc;
+    --text-gray: #94a3b8;
+    --danger: #ef4444;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-white);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 20px;
+    padding-bottom: 80px; 
+}
+
+/* Glassmorphism Effect */
+.glass-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+    margin-bottom: 20px;
+}
+
+/* User Info Header */
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px solid var(--primary-gold);
+}
+
+.badge {
+    font-size: 12px;
+    background: rgba(251, 191, 36, 0.2);
+    color: var(--primary-gold);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.balance-box {
+    text-align: center;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 10px;
+}
+
+.balance-box h1 {
+    margin: 0;
+    font-size: 2.5rem;
+    color: var(--primary-gold);
+    text-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+}
+
+/* Forms & Inputs (جديد) */
+.form-group {
+    margin-bottom: 15px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--text-gray);
+    font-size: 0.9rem;
+}
+
+input, select {
+    width: 100%;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid #334155;
+    border-radius: 8px;
+    color: white;
+    font-size: 1rem;
+    box-sizing: border-box; /* مهم جداً لعدم خروج الحقول عن الإطار */
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: var(--primary-gold);
+}
+
+/* Task List */
+.task-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    transition: transform 0.2s;
+}
+
+.task-card:active {
+    transform: scale(0.98);
+}
+
+.task-info h4 {
+    margin: 0 0 5px 0;
+}
+
+.task-reward {
+    color: var(--primary-gold);
+    font-weight: bold;
+}
+
+/* Buttons */
+.btn-start {
+    background: var(--primary-gold);
+    color: #000;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.3s;
+}
+
+.btn-start:hover {
+    background: #f59e0b;
+}
+
+/* Modal Popup */
+.modal {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.hidden {
+    display: none;
+}
+
+.timer-circle {
+    font-size: 3rem;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: var(--primary-gold);
+    text-align: center;
+}
+
+.modal-content {
+    text-align: center;
+    width: 80%;
+    max-width: 300px;
+}
+
+.btn-disabled {
+    background: #334155;
+    color: #94a3b8;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    width: 100%;
+    font-weight: bold;
+}
+
+.btn-active {
+    background: #22c55e !important; 
+    color: white !important;
+    cursor: pointer;
+}

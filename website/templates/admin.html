@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة الأدمن</title>
+    <style>
+        body { background: #0f172a; color: white; font-family: sans-serif; padding: 20px; }
+        .container { max-width: 500px; margin: auto; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; }
+        input, button { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; }
+        input { background: rgba(0,0,0,0.3); color: white; border: 1px solid #333; }
+        button { background: #fbbf24; color: black; font-weight: bold; cursor: pointer; }
+        .msg { text-align: center; color: #4ade80; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🚀 إضافة مهمة جديدة</h2>
+        
+        {% if msg %}
+        <p class="msg">{{ msg }}</p>
+        {% endif %}
+
+        <form method="POST">
+            <label>عنوان المهمة:</label>
+            <input type="text" name="title" required placeholder="مثال: شاهد إعلان منتج..">
+
+            <label>رابط الإعلان (تيلجرام/يوتيوب/موقع):</label>
+            <input type="url" name="url" required placeholder="https://...">
+
+            <label>السعر الكامل (DZD):</label>
+            <input type="number" step="0.01" name="price" required placeholder="مثال: 10">
+            <small style="color: gray;">سيحصل المستخدم على 70% وتأخذ أنت 30% تلقائياً</small>
+
+            <label>مدة المشاهدة (ثواني):</label>
+            <input type="number" name="seconds" required placeholder="مثال: 15">
+
+            <label>كلمة مرور الأدمن:</label>
+            <input type="password" name="password" required>
+
+            <button type="submit">نشر المهمة ✅</button>
+        </form>
+    </div>
+</body>
+</html>
