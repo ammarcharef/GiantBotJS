@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: my-python-app
+    env: python
+    plan: starter
+    region: frankfurt
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python main.py"
