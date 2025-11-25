@@ -3,56 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المنصة</title>
+    <title>App</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        /* إضافة تصميم خاص للتسجيل */
-        .reg-form { display: none; }
-        .locked-field { background: #333; color: #777; border: 1px solid #555; cursor: not-allowed; }
-    </style>
 </head>
 <body>
-    <div id="registration-section" class="glass reg-form">
-        <h2>📝 استكمال البيانات</h2>
-        <p style="color:#fbbf24; font-size:0.9rem;">⚠️ هام: بيانات الدفع لا يمكن تغييرها لاحقاً!</p>
-        
-        <label>الاسم الكامل</label>
-        <input type="text" id="reg-name" placeholder="الاسم واللقب">
-        
-        <label>رقم الهاتف</label>
-        <input type="tel" id="reg-phone" placeholder="06/07...">
-        
-        <label>العنوان (الولاية)</label>
-        <input type="text" id="reg-address" placeholder="العنوان">
+    <div id="loader">جاري التحميل... ⏳</div>
 
-        <hr style="border-color: #333; margin: 15px 0;">
-        <h3>💳 معلومات الاستلام</h3>
-        
-        <label>وسيلة الدفع</label>
-        <select id="reg-method" style="width:100%; padding:10px; background:#1e293b; color:white; border-radius:8px;">
-            <option value="CCP">بريد الجزائر (CCP)</option>
-            <option value="BaridiMob">BaridiMob</option>
-        </select>
-
-        <label>رقم الحساب (RIP/CCP)</label>
-        <input type="text" id="reg-account" placeholder="أدخل الرقم بدقة">
-
-        <label>إنشاء كلمة مرور للسحب (تذكرها جيداً)</label>
-        <input type="password" id="reg-pass" placeholder="*****">
-
-        <button class="btn btn-green" onclick="saveProfile()">حفظ وبدء العمل ✅</button>
+    <div id="register-screen" class="hidden">
+        <div class="glass">
+            <h2>📝 إكمال الملف الشخصي</h2>
+            <p class="warning">⚠️ انتبه: لا يمكنك تغيير معلومات الدفع لاحقاً!</p>
+            <input id="r-name" placeholder="الاسم الكامل">
+            <input id="r-phone" placeholder="رقم الهاتف">
+            <input id="r-addr" placeholder="العنوان">
+            <hr>
+            <select id="r-method">
+                <option value="CCP">بريد الجزائر (CCP)</option>
+                <option value="Baridi">BaridiMob</option>
+            </select>
+            <input id="r-acc" placeholder="رقم الحساب (RIP/CCP)">
+            <input id="r-pass" type="password" placeholder="أنشئ كلمة سر للسحب">
+            <button class="btn" onclick="register()">حفظ وبدء العمل ✅</button>
+        </div>
     </div>
 
-    <div id="main-dashboard" style="display:none;">
-        <div class="glass" style="text-align:center;">
-            <p>الرصيد الحالي</p>
-            <h1 style="color:#fbbf24"><span id="balance">0.00</span> DZD</h1>
-            <p style="font-size:0.8rem; color:#ccc;">المعرف الخاص: <span id="user-ref">...</span></p>
+    <div id="main-screen" class="hidden">
+        <div class="glass center">
+            <p>رصيدك الحالي</p>
+            <h1 class="gold"><span id="balance">0.00</span> DZD</h1>
+            <small>كود الإحالة: <span id="ref-code">...</span></small>
         </div>
-
-        <h3>🔥 المهام المتاحة</h3>
-        <div id="tasks-list"></div>
+        <h3>المهام المتاحة</h3>
+        <div id="tasks-container"></div>
     </div>
 
     <script src="script.js"></script>
