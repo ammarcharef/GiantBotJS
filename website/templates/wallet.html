@@ -1,67 +1,0 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>محفظتي</title>
-    <link rel="stylesheet" href="../static/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-</head>
-<body>
-    <header class="glass-card" style="text-align: center;">
-        <p>رصيدك القابل للسحب</p>
-        <h1 style="color: #fbbf24; margin: 5px 0;">0.00 <span style="font-size: 1rem; color: #ccc;">DZD</span></h1>
-        </header>
-
-    <main>
-        <div class="glass-card">
-            <h3><i class="fas fa-money-bill-wave"></i> طلب سحب جديد</h3>
-            <form id="withdraw-form">
-                
-                <div class="form-group">
-                    <label>طريقة السحب</label>
-                    <select id="method" required>
-                        <option value="ccp">بريد الجزائر (CCP)</option>
-                        <option value="baridi">BaridiMob</option>
-                        <option value="flexy">تعبئة رصيد (Flexy)</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>رقم الحساب / الهاتف</label>
-                    <input type="text" id="account_number" placeholder="أدخل الرقم هنا..." required>
-                </div>
-
-                <div class="form-group">
-                    <label>المبلغ المراد سحبه (DZD)</label>
-                    <input type="number" id="amount" placeholder="الحد الأدنى 500 دج" required>
-                </div>
-
-                <button type="submit" class="btn-start" style="width: 100%; margin-top: 10px;">
-                    تأكيد الطلب 🚀
-                </button>
-            </form>
-        </div>
-
-        <div class="glass-card">
-            <h3><i class="fas fa-history"></i> سجل العمليات</h3>
-            <p style="text-align: center; color: gray;">لا توجد عمليات سابقة</p>
-        </div>
-    </main>
-
-    <script>
-        // سكربت بسيط للتعامل مع النموذج (مؤقتاً)
-        document.getElementById('withdraw-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const amount = document.getElementById('amount').value;
-            if(amount < 500) {
-                alert("⚠️ عذراً، الحد الأدنى للسحب هو 500 دج");
-            } else {
-                alert("✅ تم إرسال طلب السحب بنجاح! ستتم المراجعة خلال 24 ساعة.");
-                // هنا يمكن إضافة كود لإرسال البيانات للسيرفر لاحقاً
-            }
-        });
-    </script>
-</body>
-</html>
