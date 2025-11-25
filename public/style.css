@@ -1,10 +1,10 @@
-:root { --bg: #0f172a; --card: rgba(30,41,59,0.8); --gold: #fbbf24; --text: #f8fafc; --green: #22c55e; }
-body { background-color: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding: 20px; padding-bottom: 80px; }
-.glass { background: var(--card); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 30px rgba(0,0,0,0.3); }
-h1, h2, h3 { margin: 0 0 10px 0; color: var(--gold); }
-.btn { background: var(--gold); color: #000; border: none; padding: 12px; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
-.btn:disabled { background: #555; color: #ccc; }
-.btn-green { background: var(--green); color: white; }
-input { width: 100%; padding: 12px; background: #1e293b; border: 1px solid #334155; border-radius: 8px; color: white; margin-bottom: 10px; box-sizing: border-box; }
-.task-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding: 10px 0; }
-.price-tag { color: var(--gold); font-weight: bold; }
+body { background: #0f172a; color: white; font-family: sans-serif; margin: 0; padding: 20px; }
+.glass { background: rgba(30,41,59,0.9); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; margin-bottom: 10px; }
+.btn { background: #fbbf24; border: none; padding: 10px; width: 100%; border-radius: 8px; font-weight: bold; margin-top: 10px; cursor: pointer; }
+.small { width: auto; padding: 5px 15px; }
+input, select { width: 100%; padding: 10px; margin: 5px 0; background: #1e293b; border: 1px solid #333; color: white; box-sizing: border-box; border-radius: 5px;}
+.gold { color: #fbbf24; }
+.hidden { display: none; }
+.task { display: flex; justify-content: space-between; align-items: center; }
+.warning { color: #ef4444; font-size: 0.9rem; }
+.center { text-align: center; }
