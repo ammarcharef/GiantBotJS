@@ -1,57 +1,87 @@
 const tg = window.Telegram.WebApp;
-tg.expand(); 
-
+tg.expand();
 let currentUserId = null;
 
 async function init() {
-    // 1. محاولة جلب الآيدي من الرابط المباشر (الطريقة المضمونة)
     const urlParams = new URLSearchParams(window.location.search);
-    const uidFromUrl = urlParams.get('uid');
-
-    if (uidFromUrl) {
-        currentUserId = uidFromUrl;
-    } else {
-        // 2. محاولة جلبه من تيلجرام (الطريقة الاحتياطية)
-        currentUserId = tg.initDataUnsafe?.user?.id;
-    }
-
-    // إخفاء شاشة التحميل
-    document.getElementById('loader').style.display = 'none';
+    currentUserId = urlParams.get('uid') || tg.initDataUnsafe?.user?.id;
 
     if (!currentUserId) {
-        // في أسوأ الحالات، اطلب من المستخدم العودة للبوت
-        alert("⚠️ لم يتم التعرف على الحساب. يرجى العودة للبوت والضغط على /start مجدداً.");
+        // محاولة أخيرة
+        alert("⚠️ لم يتم التعرف على الحساب.");
+        document.getElementById('register-screen').classList.remove('hidden');
         return;
     }
 
     try {
-        // جلب البيانات
         const res = await fetch(`/api/user/${currentUserId}`);
-        const userData = await res.json();
+        const user = await res.json();
 
-        if (userData.paymentLocked) {
-            showDashboard(userData);
+        if (user.paymentLocked) {
+            showTab('home'); // فتح الصفحة الرئيسية
+            document.getElementById('navbar').classList.remove('hidden');
+            updateUI(user);
         } else {
             document.getElementById('register-screen').classList.remove('hidden');
-            // محاولة ملء الاسم تلقائياً
-            if(tg.initDataUnsafe?.user?.first_name) {
-                document.getElementById('r-name').value = tg.initDataUnsafe.user.first_name;
-            }
+            if(tg.initDataUnsafe?.user?.first_name) document.getElementById('r-name').value = tg.initDataUnsafe.user.first_name;
         }
-    } catch (error) {
-        // في حال فشل الاتصال، نظهر التسجيل كخيار
-        document.getElementById('register-screen').classList.remove('hidden');
-    }
+    } catch (e) { alert("خطأ في الشبكة"); }
 }
 
-function showDashboard(user) {
-    document.getElementById('register-screen').classList.add('hidden');
-    document.getElementById('main-screen').classList.remove('hidden');
+// التنقل بين التبويبات
+function showTab(tabName) {
+    // إخفاء كل الشاشات
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    // إظهار الشاشة المطلوبة
+    document.getElementById(tabName + '-screen').classList.remove('hidden');
+    
+    // تحديث الشريط السفلي
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    // تفعيل الزر المناسب (يتطلب منطق بسيط لتحديد العنصر)
+    
+    if(tabName === 'home') loadTasks();
+    if(tabName === 'top') loadLeaderboard();
+    if(tabName === 'wallet') loadWalletInfo();
+}
+
+function updateUI(user) {
     document.getElementById('balance').innerText = user.balance.toFixed(2);
-    document.getElementById('ref-code').innerText = user.refCode || user.id;
-    loadTasks();
 }
 
+// المكافأة اليومية
+async function claimDaily() {
+    const res = await fetch('/api/daily', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ userId: currentUserId })
+    });
+    const json = await res.json();
+    if(json.success) { alert("🎉 " + json.msg); location.reload(); }
+    else alert("⚠️ " + json.error);
+}
+
+// المتصدرين
+async function loadLeaderboard() {
+    const res = await fetch('/api/leaderboard');
+    const users = await res.json();
+    const tbody = document.querySelector('#leaderboard-table tbody');
+    tbody.innerHTML = users.map((u, i) => `
+        <tr>
+            <td>${i+1} ${i===0?'👑':''}</td>
+            <td>${u.name}</td>
+            <td class="gold">${u.totalEarned.toFixed(1)}</td>
+        </tr>
+    `).join('');
+}
+
+// المحفظة
+async function loadWalletInfo() {
+    const res = await fetch(`/api/user/${currentUserId}`);
+    const user = await res.json();
+    document.getElementById('p-name').innerText = user.fullName;
+    document.getElementById('p-acc').innerText = user.paymentAccount;
+}
+
+// التسجيل والمهام (نفس الكود السابق)
 async function register() {
     const data = {
         userId: currentUserId,
@@ -62,80 +92,35 @@ async function register() {
         account: document.getElementById('r-acc').value,
         pass: document.getElementById('r-pass').value
     };
-
-    if (!data.fullName || !data.account || !data.pass) return alert("املأ جميع البيانات!");
-
-    const btn = document.querySelector('button');
-    btn.disabled = true; btn.innerText = "جاري الحفظ...";
-
-    try {
-        const res = await fetch('/api/register', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
-        });
-        const json = await res.json();
-        if (json.success) {
-            alert("✅ تم التسجيل!");
-            location.reload();
-        } else {
-            alert("خطأ: " + json.error);
-            btn.disabled = false; btn.innerText = "حفظ";
-        }
-    } catch (e) {
-        alert("فشل الاتصال");
-        btn.disabled = false; btn.innerText = "حفظ";
-    }
+    if (!data.account || !data.pass) return alert("أكمل البيانات!");
+    
+    await fetch('/api/register', {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
+    });
+    location.reload();
 }
 
 async function loadTasks() {
-    try {
-        const res = await fetch('/api/tasks');
-        const tasks = await res.json();
-        const container = document.getElementById('tasks-container');
-        
-        if (tasks.length === 0) {
-            container.innerHTML = '<p style="text-align:center; color:#777">لا توجد مهام</p>';
-            return;
-        }
-
-        container.innerHTML = tasks.map(t => `
-            <div class="glass task" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <div>
-                    <h4 style="margin:0">${t.title}</h4>
-                    <span class="gold">+${t.reward} DZD</span>
-                </div>
-                <button class="btn small" style="width:auto; margin:0" onclick="doTask('${t.id}', '${t.url}', ${t.seconds})">بدء</button>
-            </div>
-        `).join('');
-    } catch (e) {}
+    const res = await fetch('/api/tasks');
+    const tasks = await res.json();
+    document.getElementById('tasks-container').innerHTML = tasks.map(t => `
+        <div class="glass task">
+            <div><h4>${t.title}</h4><span class="gold">+${t.reward} DZD</span></div>
+            <button class="btn small primary" onclick="doTask('${t.id}', '${t.url}', ${t.seconds})">بدء</button>
+        </div>
+    `).join('');
 }
 
 function doTask(id, url, sec) {
     tg.openLink(url);
-    const btn = event.target;
-    const oldText = btn.innerText;
-    btn.disabled = true;
-    let timeLeft = sec;
-    
-    const timer = setInterval(() => {
-        btn.innerText = timeLeft;
-        timeLeft--;
-        if (timeLeft < 0) {
-            clearInterval(timer);
-            claim(id, btn, oldText);
-        }
-    }, 1000);
-}
-
-async function claim(taskId, btn, oldText) {
-    btn.innerText = "تحقق...";
-    const res = await fetch('/api/claim', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ userId: currentUserId, taskId })
-    });
-    const json = await res.json();
-    if(json.success) { alert("✅ مبروك"); location.reload(); }
-    else { alert("❌ " + json.error); btn.disabled = false; btn.innerText = oldText; }
+    setTimeout(async () => {
+        const res = await fetch('/api/claim', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ userId: currentUserId, taskId: id })
+        });
+        const json = await res.json();
+        if(json.success) { alert("✅ تم!"); location.reload(); }
+    }, sec * 1000);
 }
 
 init();
