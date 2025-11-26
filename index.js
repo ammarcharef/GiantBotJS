@@ -1,57 +1,116 @@
-<!DOCTYPE html>
-<html dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المنصة العملاقة</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://telegram.org/js/telegram-web-app.js?v=7.10"></script>
-</head>
-<body>
+require('dotenv').config();
+const { Telegraf, Markup } = require('telegraf');
+const express = require('express');
+const mongoose = require('mongoose');
+const path = require('path');
+const cors = require('cors');
 
-    <div id="loader" style="text-align:center; margin-top:50px;">
-        <h3 style="color:#fbbf24;">جاري الاتصال... ⏳</h3>
-    </div>
+// الإعدادات
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const MONGO_URL = process.env.MONGO_URL;
+const ADMIN_PASS = process.env.ADMIN_PASSWORD || "123";
+const PORT = process.env.PORT || 3000;
+const APP_URL = process.env.RENDER_EXTERNAL_URL; 
 
-    <div id="register-screen" class="hidden">
-        <div class="glass">
-            <h2>📝 إكمال الملف الشخصي</h2>
-            <p class="warning" style="color:#ef4444; font-size:0.9rem;">⚠️ انتبه: لا يمكنك تغيير معلومات الدفع لاحقاً!</p>
-            
-            <label>المعلومات الشخصية:</label>
-            <input type="text" id="r-name" placeholder="الاسم واللقب">
-            <input type="tel" id="r-phone" placeholder="رقم الهاتف">
-            <input type="text" id="r-addr" placeholder="العنوان (الولاية)">
-            
-            <hr style="border-color:#444; margin:15px 0;">
-            
-            <label>معلومات السحب:</label>
-            <select id="r-method">
-                <option value="CCP">بريد الجزائر (CCP)</option>
-                <option value="BaridiMob">BaridiMob</option>
-            </select>
-            <input type="text" id="r-acc" placeholder="رقم الحساب (RIP/CCP)">
-            <input type="password" id="r-pass" placeholder="أنشئ كلمة سر للسحب">
-            
-            <button class="btn" onclick="register()">حفظ وبدء العمل ✅</button>
-        </div>
-    </div>
+// قاعدة البيانات
+mongoose.connect(MONGO_URL)
+    .then(() => console.log('✅ Connected to MongoDB'))
+    .catch(err => console.error('❌ DB Error:', err));
 
-    <div id="main-screen" class="hidden">
-        <div class="glass center" style="text-align:center;">
-            <p style="color:#ccc;">رصيدك الحالي</p>
-            <h1 class="gold" style="font-size:2.5rem; margin:10px 0;"><span id="balance">0.00</span> DZD</h1>
-            <div style="background:#334155; padding:5px; border-radius:5px; display:inline-block;">
-                <small>🆔 كود الإحالة: <span id="ref-code" style="color:#fbbf24;">...</span></small>
-            </div>
-        </div>
+// الجداول
+const UserSchema = new mongoose.Schema({
+    id: { type: Number, unique: true },
+    name: String,
+    refCode: String,
+    referrer: Number,
+    fullName: String, phone: String, address: String,
+    paymentMethod: String, paymentAccount: String, paymentPassword: String,
+    paymentLocked: { type: Boolean, default: false },
+    balance: { type: Number, default: 0.0 },
+    isBanned: { type: Boolean, default: false },
+    joinedAt: { type: Date, default: Date.now }
+});
+const User = mongoose.model('User', UserSchema);
 
-        <h3 style="margin-top:20px; color:#fbbf24;">🔥 المهام المتاحة اليوم</h3>
-        <div id="tasks-container">
-            <p style="text-align:center;">جاري جلب المهام...</p>
-        </div>
-    </div>
+const TaskSchema = new mongoose.Schema({
+    title: String, url: String, fullPrice: Number, seconds: Number,
+    active: { type: Boolean, default: true }
+});
+const Task = mongoose.model('Task', TaskSchema);
 
-    <script src="script.js"></script>
-</body>
-</html>
+// السيرفر
+const app = express();
+app.use(express.json());
+app.use(cors());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// التوجيه الرئيسي
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// APIs
+app.get('/api/user/:id', async (req, res) => {
+    let user = await User.findOne({ id: req.params.id });
+    res.json(user || { error: "Not found" });
+});
+
+app.post('/api/register', async (req, res) => {
+    try {
+        const { userId, fullName, phone, address, method, account, pass } = req.body;
+        let user = await User.findOne({ id: userId });
+        if(!user) { // إنشاء مستخدم جديد إذا لم يوجد
+             user = await User.create({ id: userId, name: fullName, refCode: userId });
+        }
+        if (user.paymentLocked) return res.json({ error: "البيانات مقفلة مسبقاً" });
+
+        user.fullName = fullName; user.phone = phone; user.address = address;
+        user.paymentMethod = method; user.paymentAccount = account; user.paymentPassword = pass;
+        user.paymentLocked = true;
+        await user.save();
+        res.json({ success: true });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/tasks', async (req, res) => {
+    const tasks = await Task.find({ active: true }).sort({ _id: -1 });
+    res.json(tasks.map(t => ({
+        id: t._id, title: t.title, url: t.url, seconds: t.seconds,
+        reward: (t.fullPrice * 0.70).toFixed(2)
+    })));
+});
+
+app.post('/api/claim', async (req, res) => {
+    const { userId, taskId } = req.body;
+    const task = await Task.findById(taskId);
+    if (!task) return res.json({ error: "Error" });
+    
+    const reward = task.fullPrice * 0.70;
+    const user = await User.findOneAndUpdate({ id: userId }, { $inc: { balance: reward } }, {new: true});
+    if(user.referrer) await User.findOneAndUpdate({ id: user.referrer }, { $inc: { balance: task.fullPrice * 0.10 } });
+    
+    res.json({ success: true, msg: "تمت الإضافة" });
+});
+
+// أدمن
+app.post('/api/admin', async (req, res) => {
+    const { password, action, payload } = req.body;
+    if (password !== ADMIN_PASS) return res.json({ error: "Auth Error" });
+    if (action === 'add_task') await Task.create(payload);
+    res.json({ success: true });
+});
+
+app.listen(PORT, () => console.log(`🚀 Running on port ${PORT}`));
+
+// البوت
+const bot = new Telegraf(BOT_TOKEN);
+bot.start(async (ctx) => {
+    const user = ctx.from;
+    let dbUser = await User.findOne({ id: user.id });
+    if (!dbUser) await User.create({ id: user.id, name: user.first_name, refCode: user.id });
+    
+    ctx.reply(`أهلاً بك في المنصة 🇩🇿\nاضغط بالأسفل للدخول.`, 
+        Markup.keyboard([[Markup.button.webApp("📱 دخول المنصة", `${APP_URL}/`)]]).resize()
+    );
+});
+bot.launch();
