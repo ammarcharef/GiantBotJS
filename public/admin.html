@@ -2,65 +2,79 @@
 <html dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>Admin</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Admin Panel</title>
+    <style>
+        body { background: #000; color: #0f0; font-family: monospace; padding: 20px; }
+        input, button { background: #111; border: 1px solid #0f0; color: #0f0; padding: 10px; margin: 5px; }
+        button:hover { background: #0f0; color: #000; cursor: pointer; }
+        .box { border: 1px solid #333; padding: 15px; margin-bottom: 20px; }
+        h2 { border-bottom: 1px solid #0f0; display: inline-block; }
+        .red { color: red; border-color: red; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        td, th { border: 1px solid #333; padding: 8px; text-align: right; }
+    </style>
 </head>
 <body>
-    <div style="max-width:600px; margin:auto">
-        <div class="glass">
-            <h2>لوحة الإدارة</h2>
-            <input type="password" id="pass" placeholder="كلمة المرور">
-            <button class="btn" onclick="loadStats()">دخول</button>
+    <h1>[ SYSTEM ADMIN ]</h1>
+    <input type="password" id="pass" placeholder="PASSWORD">
+    <button onclick="loadData()">ACCESS</button>
+
+    <div id="panel" style="display:none">
+        <div class="box">
+            <h2>STATS</h2>
+            <p>USERS: <span id="s-users">0</span> | PENDING WITHDRAWALS: <span id="s-with">0</span></p>
         </div>
 
-        <div id="admin-panel" class="hidden">
-            <div class="glass">
-                <h3>إضافة إعلان</h3>
-                <input id="t-title" placeholder="العنوان">
-                <input id="t-url" placeholder="الرابط">
-                <input id="t-price" type="number" placeholder="السعر الكامل">
-                <input id="t-sec" type="number" placeholder="الوقت (ثواني)">
-                <button class="btn" onclick="addTask()">نشر</button>
-            </div>
-            
-            <div id="users-list"></div>
+        <div class="box">
+            <h2>ADD TASK</h2>
+            <input id="t-title" placeholder="Title">
+            <input id="t-url" placeholder="URL">
+            <input id="t-price" type="number" placeholder="Full Price">
+            <input id="t-sec" type="number" placeholder="Seconds">
+            <button onclick="addTask()">PUBLISH</button>
+        </div>
+
+        <div class="box">
+            <h2>WITHDRAWALS</h2>
+            <div id="w-list"></div>
         </div>
     </div>
 
     <script>
-        async function loadStats() {
-            const password = document.getElementById('pass').value;
-            const res = await fetch('/api/admin', {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ password, action: 'stats' })
-            });
+        let password = "";
+        async function loadData() {
+            password = document.getElementById('pass').value;
+            const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password, action:'data'}) });
             const data = await res.json();
-            if (data.error) return alert("خطأ في كلمة المرور");
-
-            document.getElementById('admin-panel').classList.remove('hidden');
+            if(data.error) return alert("ACCESS DENIED");
             
-            const list = document.getElementById('users-list');
-            list.innerHTML = "<h3>أحدث المستخدمين</h3>" + data.users.map(u => `
-                <div class="glass task">
-                    <div>${u.name} <br> <small>${u.paymentAccount || 'غير مسجل'}</small></div>
-                    <div class="gold">${u.balance.toFixed(2)}</div>
+            document.getElementById('panel').style.display = 'block';
+            document.getElementById('s-users').innerText = data.stats.users;
+            document.getElementById('s-with').innerText = data.stats.withdrawalPending;
+            
+            document.getElementById('w-list').innerHTML = data.withdrawals.map(w => `
+                <div style="border-bottom:1px solid #333; padding:5px;">
+                    [${w.amount} DZD] ${w.userName} -> ${w.method} (${w.account})
+                    <button onclick="proc('${w._id}', 'paid')">PAY</button>
+                    <button class="red" onclick="proc('${w._id}', 'rejected')">REJECT</button>
                 </div>
             `).join('');
         }
 
         async function addTask() {
-            const password = document.getElementById('pass').value;
             const payload = {
                 title: document.getElementById('t-title').value,
                 url: document.getElementById('t-url').value,
                 fullPrice: document.getElementById('t-price').value,
                 seconds: document.getElementById('t-sec').value
             };
-            await fetch('/api/admin', {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ password, action: 'add_task', payload })
-            });
-            alert("تم النشر");
+            await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password, action:'add_task', payload}) });
+            alert("TASK ADDED"); loadData();
+        }
+
+        async function proc(id, status) {
+            await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password, action:'process_withdraw', payload:{id, status}}) });
+            alert("PROCESSED"); loadData();
         }
     </script>
 </body>
