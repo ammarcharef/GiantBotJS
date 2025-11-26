@@ -1,10 +1,29 @@
-body { background: #0f172a; color: white; font-family: sans-serif; margin: 0; padding: 20px; }
-.glass { background: rgba(30,41,59,0.9); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; margin-bottom: 10px; }
-.btn { background: #fbbf24; border: none; padding: 10px; width: 100%; border-radius: 8px; font-weight: bold; margin-top: 10px; cursor: pointer; }
-.small { width: auto; padding: 5px 15px; }
-input, select { width: 100%; padding: 10px; margin: 5px 0; background: #1e293b; border: 1px solid #333; color: white; box-sizing: border-box; border-radius: 5px;}
-.gold { color: #fbbf24; }
-.hidden { display: none; }
+body { background: #0f172a; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; height: 100vh; overflow: hidden; }
+.screen { padding: 20px; padding-bottom: 80px; height: 100%; overflow-y: auto; box-sizing: border-box; }
+.hidden { display: none !important; }
+
+.glass { background: rgba(30,41,59,0.8); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 16px; margin-bottom: 15px; backdrop-filter: blur(10px); }
+.header-card { background: linear-gradient(45deg, #fbbf24, #d97706); color: black; padding: 20px; border-radius: 20px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(251, 191, 36, 0.3); }
+.header-card h1 { margin: 5px 0; }
+
+.btn { width: 100%; padding: 12px; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: 10px; transition: 0.2s; }
+.primary { background: #fbbf24; color: black; }
+.danger { background: #ef4444; color: white; }
+.small { width: auto; padding: 8px 20px; margin: 0; }
+
 .task { display: flex; justify-content: space-between; align-items: center; }
-.warning { color: #ef4444; font-size: 0.9rem; }
+.gold { color: #fbbf24; }
 .center { text-align: center; }
+
+input, select { width: 100%; padding: 12px; margin: 5px 0; background: #1e293b; border: 1px solid #333; color: white; border-radius: 8px; box-sizing: border-box; }
+
+/* شريط التنقل */
+.navbar { position: fixed; bottom: 0; width: 100%; background: #1e293b; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #333; z-index: 100; }
+.nav-item { text-align: center; color: #94a3b8; font-size: 0.8rem; cursor: pointer; }
+.nav-item i { font-size: 1.2rem; display: block; margin-bottom: 3px; }
+.nav-item.active { color: #fbbf24; }
+
+/* جدول الترتيب */
+table { width: 100%; border-collapse: collapse; }
+td, th { padding: 10px; border-bottom: 1px solid #333; text-align: right; }
+th { color: #fbbf24; }
