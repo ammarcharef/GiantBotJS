@@ -1,29 +1,111 @@
-body { background: #0f172a; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; height: 100vh; overflow: hidden; }
-.screen { padding: 20px; padding-bottom: 80px; height: 100%; overflow-y: auto; box-sizing: border-box; }
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
+
+:root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --gold: #fbbf24;
+    --gold-grad: linear-gradient(135deg, #fbbf24 0%, #b45309 100%);
+    --text: #f8fafc;
+    --green: #10b981;
+    --red: #ef4444;
+}
+
+body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Tajawal', sans-serif;
+    margin: 0; height: 100vh; overflow: hidden;
+}
+
+.screen { padding: 20px; padding-bottom: 90px; height: 100%; overflow-y: auto; box-sizing: border-box; }
 .hidden { display: none !important; }
 
-.glass { background: rgba(30,41,59,0.8); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 16px; margin-bottom: 15px; backdrop-filter: blur(10px); }
-.header-card { background: linear-gradient(45deg, #fbbf24, #d97706); color: black; padding: 20px; border-radius: 20px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(251, 191, 36, 0.3); }
-.header-card h1 { margin: 5px 0; }
+/* البطاقة الرئيسية */
+.balance-card {
+    background: var(--gold-grad); color: #000;
+    padding: 25px; border-radius: 25px;
+    text-align: center; position: relative;
+    box-shadow: 0 10px 30px rgba(251, 191, 36, 0.3);
+    margin-bottom: 25px;
+}
+.rank-badge {
+    position: absolute; top: 15px; right: 15px;
+    background: rgba(0,0,0,0.2); color: #fff;
+    padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;
+}
+.balance-card h1 { margin: 5px 0; font-size: 2.8rem; font-weight: 800; }
+.user-id { background: rgba(255,255,255,0.3); display: inline-block; padding: 4px 10px; border-radius: 8px; font-weight: bold; font-size: 0.9rem; }
 
-.btn { width: 100%; padding: 12px; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: 10px; transition: 0.2s; }
-.primary { background: #fbbf24; color: black; }
-.danger { background: #ef4444; color: white; }
-.small { width: auto; padding: 8px 20px; margin: 0; }
+/* الإحصائيات */
+.stats-row { display: flex; justify-content: space-between; margin-bottom: 25px; }
+.stat-box {
+    background: var(--card); padding: 15px 10px;
+    border-radius: 15px; width: 22%; text-align: center;
+    border: 1px solid rgba(255,255,255,0.05); cursor: pointer;
+    transition: 0.2s;
+}
+.stat-box:active { transform: scale(0.95); background: #334155; }
+.stat-box i { font-size: 1.5rem; color: var(--gold); display: block; margin-bottom: 8px; }
+.stat-box span { font-size: 0.75rem; color: #94a3b8; }
 
-.task { display: flex; justify-content: space-between; align-items: center; }
-.gold { color: #fbbf24; }
+/* القوائم */
+.list-container { display: flex; flex-direction: column; gap: 10px; }
+.task-item, .hist-item {
+    background: var(--card); padding: 15px; border-radius: 15px;
+    display: flex; justify-content: space-between; align-items: center;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+.task-info h4 { margin: 0 0 5px 0; }
+.price-tag { color: var(--green); font-weight: bold; }
+.hist-date { font-size: 0.7rem; color: #64748b; }
+
+/* الأزرار والنماذج */
+.input-box {
+    background: #020617; border: 1px solid #334155;
+    border-radius: 12px; padding: 0 15px; margin-bottom: 15px;
+    display: flex; align-items: center; height: 50px;
+}
+.input-box i { color: #64748b; margin-left: 10px; }
+input, select {
+    background: transparent; border: none; color: white;
+    width: 100%; height: 100%; outline: none; font-family: inherit; font-size: 1rem;
+}
+.btn-primary {
+    width: 100%; background: var(--gold); color: #000;
+    padding: 15px; border: none; border-radius: 12px;
+    font-weight: bold; font-size: 1rem; cursor: pointer;
+    box-shadow: 0 5px 15px rgba(251, 191, 36, 0.2);
+}
+.btn-danger { width: 100%; background: var(--red); color: white; padding: 15px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+.start-btn { background: var(--gold); border: none; padding: 8px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+
+/* النافبار */
+.navbar {
+    position: fixed; bottom: 0; left: 0; width: 100%;
+    background: #1e293b; padding: 15px 0;
+    display: flex; justify-content: space-around;
+    border-top: 1px solid #334155; z-index: 100;
+}
+.nav-item { text-align: center; color: #64748b; font-size: 0.7rem; cursor: pointer; transition: 0.3s; }
+.nav-item i { font-size: 1.4rem; display: block; margin-bottom: 4px; }
+.nav-item.active { color: var(--gold); transform: translateY(-5px); }
+
+/* أخرى */
+.page-header { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
+.page-header i { font-size: 1.2rem; padding: 10px; background: var(--card); border-radius: 50%; cursor: pointer; }
+.glass-panel { background: var(--card); padding: 20px; border-radius: 20px; margin-bottom: 20px; }
 .center { text-align: center; }
+.profile-icon { width: 80px; height: 80px; background: #334155; border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: var(--gold); }
+.coupon-area { display: flex; gap: 10px; margin: 15px 0; }
+.coupon-area input { background: #0f172a; border-radius: 8px; padding: 10px; border: 1px solid #334155; }
+.coupon-area button { background: var(--green); border: none; color: white; padding: 0 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+.full-input { background: #0f172a; border-radius: 8px; padding: 12px; border: 1px solid #334155; margin-bottom: 10px; display: block; }
 
-input, select { width: 100%; padding: 12px; margin: 5px 0; background: #1e293b; border: 1px solid #333; color: white; border-radius: 8px; box-sizing: border-box; }
+/* التوست */
+#toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; width: 80%; max-width: 300px; }
+.toast { background: rgba(0,0,0,0.9); color: white; padding: 12px 20px; border-radius: 10px; text-align: center; animation: slideDown 0.3s; border-left: 4px solid var(--gold); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+.toast.error { border-left-color: var(--red); }
+@keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-/* شريط التنقل */
-.navbar { position: fixed; bottom: 0; width: 100%; background: #1e293b; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #333; z-index: 100; }
-.nav-item { text-align: center; color: #94a3b8; font-size: 0.8rem; cursor: pointer; }
-.nav-item i { font-size: 1.2rem; display: block; margin-bottom: 3px; }
-.nav-item.active { color: #fbbf24; }
-
-/* جدول الترتيب */
-table { width: 100%; border-collapse: collapse; }
-td, th { padding: 10px; border-bottom: 1px solid #333; text-align: right; }
-th { color: #fbbf24; }
+.loader { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--bg); display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:9999; }
+.spinner { width: 40px; height: 40px; border: 4px solid #334155; border-top: 4px solid var(--gold); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
