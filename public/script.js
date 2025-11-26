@@ -1,62 +1,82 @@
+// تهيئة تيلجرام
 const tg = window.Telegram.WebApp;
-tg.expand(); // توسيع الشاشة
+tg.expand(); // توسيع الشاشة لتملأ الهاتف
 
+// متغير لتخزين هوية المستخدم
+let currentUserId = null;
+
+// --- دالة البدء (تعمل فور فتح الموقع) ---
 async function init() {
-    // 1. محاولة جلب الآيدي
-    let userId = tg.initDataUnsafe?.user?.id;
-
-    // 2. إخفاء شاشة التحميل فوراً (لضمان عدم تعليق الشاشة)
-    document.getElementById('loader').style.display = 'none';
-
-    // 3. التحقق من الآيدي
-    if (!userId) {
-        // محاولة بديلة: إذا كنا في وضع تطوير أو متصفح خارجي
-        console.warn("No User ID found via Telegram");
-        // لا نوقف التطبيق، بل نوجه للتسجيل اليدوي
-        document.getElementById('register-screen').classList.remove('hidden');
-        return; 
-    }
-
     try {
-        // 4. جلب البيانات من السيرفر
-        const res = await fetch(`/api/user/${userId}`);
+        // 1. محاولة الحصول على الآيدي من تيلجرام
+        const user = tg.initDataUnsafe?.user;
         
-        if (!res.ok) throw new Error("Network response was not ok");
-        
-        const user = await res.json();
-
-        if (user.paymentLocked) {
-            // المستخدم مسجل سابقاً -> عرض المهام
-            document.getElementById('main-screen').classList.remove('hidden');
-            document.getElementById('register-screen').classList.add('hidden');
-            
-            document.getElementById('balance').innerText = user.balance.toFixed(2);
-            document.getElementById('ref-code').innerText = user.refCode || user.id;
-            loadTasks();
+        if (user && user.id) {
+            currentUserId = user.id;
         } else {
-            // مستخدم جديد -> عرض التسجيل
-            document.getElementById('register-screen').classList.remove('hidden');
-            document.getElementById('main-screen').classList.add('hidden');
+            console.warn("لم يتم العثور على بيانات المستخدم من تيلجرام");
         }
+
+        // 2. إخفاء شاشة التحميل في كل الأحوال
+        document.getElementById('loader').style.display = 'none';
+
+        if (!currentUserId) {
+            // حالة الخطأ: لم يفتح من تيلجرام أو حدث مشكلة في الشبكة
+            // نظهر شاشة التسجيل ليتمكن المستخدم من المحاولة أو نطلب منه العودة للبوت
+            alert("تنبيه: لم يتم التعرف على حسابك تلقائياً. يرجى التأكد من فتح المنصة عبر البوت.");
+            document.getElementById('register-screen').classList.remove('hidden');
+            return;
+        }
+
+        // 3. الاتصال بالسيرفر لجلب بيانات المستخدم
+        const res = await fetch(`/api/user/${currentUserId}`);
+        
+        if (!res.ok) throw new Error("فشل الاتصال بالسيرفر");
+        
+        const userData = await res.json();
+
+        // 4. التوجيه حسب حالة المستخدم
+        if (userData.paymentLocked) {
+            // المستخدم مسجل من قبل -> اعرض لوحة التحكم
+            showDashboard(userData);
+        } else {
+            // مستخدم جديد -> اعرض شاشة التسجيل
+            document.getElementById('register-screen').classList.remove('hidden');
+            // ملء الاسم تلقائياً لتسهيل الأمر
+            if (user?.first_name) document.getElementById('r-name').value = user.first_name;
+        }
+
     } catch (error) {
-        alert("خطأ في الاتصال: " + error.message);
-        // إظهار التسجيل كخيار احتياطي
+        console.error(error);
+        alert("حدث خطأ في الاتصال. حاول تحديث الصفحة.");
+        document.getElementById('loader').style.display = 'none';
         document.getElementById('register-screen').classList.remove('hidden');
     }
 }
 
-// دالة التسجيل
-async function register() {
-    // استخدام الآيدي الحقيقي أو 0 في حال الفشل (سيقوم السيرفر بمعالجته)
-    const userId = tg.initDataUnsafe?.user?.id;
+// --- دالة عرض الداشبورد ---
+function showDashboard(user) {
+    document.getElementById('register-screen').classList.add('hidden');
+    document.getElementById('main-screen').classList.remove('hidden');
+    
+    document.getElementById('balance').innerText = user.balance.toFixed(2);
+    document.getElementById('ref-code').innerText = user.refCode || user.id;
+    
+    loadTasks(); // استدعاء دالة جلب المهام
+}
 
-    if (!userId) {
-        alert("خطأ: لم يتم التعرف على حسابك في تيلجرام. أعد تشغيل البوت.");
+// --- دالة التسجيل (الحفظ) ---
+async function register() {
+    // محاولة أخيرة للتأكد من الآيدي قبل الإرسال
+    if (!currentUserId) currentUserId = tg.initDataUnsafe?.user?.id;
+
+    if (!currentUserId) {
+        alert("خطأ: لا يوجد معرف مستخدم. أعد تشغيل البوت.");
         return;
     }
 
     const data = {
-        userId: userId,
+        userId: currentUserId,
         fullName: document.getElementById('r-name').value,
         phone: document.getElementById('r-phone').value,
         address: document.getElementById('r-addr').value,
@@ -65,15 +85,14 @@ async function register() {
         pass: document.getElementById('r-pass').value
     };
 
-    // التحقق من البيانات
+    // التحقق من الحقول الفارغة
     if (!data.fullName || !data.account || !data.pass) {
-        alert("⚠️ يرجى ملء جميع الحقول المطلوبة!");
+        alert("⚠️ يرجى ملء جميع الحقول ومعلومات الدفع!");
         return;
     }
 
-    // تغيير الزر
+    // قفل الزر لمنع التكرار
     const btn = document.querySelector('button');
-    const oldText = btn.innerText;
     btn.innerText = "جاري الاتصال...";
     btn.disabled = true;
 
@@ -87,95 +106,98 @@ async function register() {
         const json = await res.json();
         
         if (json.success) {
-            alert("✅ تم الحفظ بنجاح! يمكنك بدء العمل الآن.");
-            location.reload();
+            alert("✅ تم الحفظ بنجاح! أهلاً بك في الفريق.");
+            location.reload(); // إعادة تحميل الصفحة للدخول للداشبورد
         } else {
-            // عرض رسالة الخطأ القادمة من السيرفر
             alert("❌ خطأ: " + (json.error || "فشلت العملية"));
-            btn.innerText = oldText;
+            btn.innerText = "حفظ وبدء العمل ✅";
             btn.disabled = false;
         }
     } catch (e) {
-        alert("❌ فشل الاتصال: تأكد من الانترنت وحاول مجدداً");
-        btn.innerText = oldText;
+        alert("فشل الاتصال بالسيرفر. تحقق من الانترنت.");
+        btn.innerText = "حفظ وبدء العمل ✅";
         btn.disabled = false;
-        console.error(e);
     }
 }
 
-// دالة تحميل المهام
+// --- دالة تحميل قائمة المهام ---
 async function loadTasks() {
     try {
         const res = await fetch('/api/tasks');
         const tasks = await res.json();
-        const div = document.getElementById('tasks-container');
+        const container = document.getElementById('tasks-container');
         
-        if(tasks.length === 0) {
-            div.innerHTML = '<p style="text-align:center; color:#777">لا توجد مهام حالياً</p>';
+        if (tasks.length === 0) {
+            container.innerHTML = '<div style="padding:20px; color:#888;">لا توجد مهام متاحة حالياً. عد لاحقاً!</div>';
             return;
         }
 
-        div.innerHTML = tasks.map(t => `
-            <div class="glass task">
+        container.innerHTML = tasks.map(t => `
+            <div class="glass task" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <div>
-                    <h4>${t.title}</h4>
-                    <span class="gold">+${t.reward} DZD</span>
+                    <h4 style="margin:0 0 5px 0;">${t.title}</h4>
+                    <span class="gold" style="font-weight:bold;">+${t.reward} DZD</span>
                 </div>
-                <button class="btn small" onclick="doTask('${t.id}', '${t.url}', ${t.seconds})">بدء</button>
+                <button class="btn small" style="width:auto; padding:5px 15px; margin:0;" onclick="doTask('${t.id}', '${t.url}', ${t.seconds})">
+                    بدء ▶️
+                </button>
             </div>
         `).join('');
     } catch (e) {
-        console.error(e);
+        console.error("Error loading tasks", e);
     }
 }
 
-// دالة تنفيذ المهمة
+// --- دالة تنفيذ المهمة ---
 function doTask(id, url, sec) {
+    // فتح الرابط
     tg.openLink(url);
     
-    // تأثير بصري للزر
-    let btn = event.target;
-    let oldText = btn.innerText;
-    btn.disabled = true;
+    // البحث عن الزر الذي تم ضغطه وتغييره
+    const btn = event.target;
+    const originalText = btn.innerText;
     
+    btn.disabled = true;
     let timeLeft = sec;
+    
     const timer = setInterval(() => {
         btn.innerText = `⏳ ${timeLeft}`;
         timeLeft--;
         
         if (timeLeft < 0) {
             clearInterval(timer);
-            claimReward(id, btn, oldText);
+            claimReward(id, btn, originalText);
         }
     }, 1000);
 }
 
-async function claimReward(taskId, btn, oldText) {
-    const userId = tg.initDataUnsafe?.user?.id;
-    if(!userId) return alert("فشل التحقق من المستخدم");
-
-    btn.innerText = "تحقق...";
+// --- دالة المطالبة بالأرباح ---
+async function claimReward(taskId, btnElement, originalText) {
+    btnElement.innerText = "تحقق...";
     
     try {
         const res = await fetch('/api/claim', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ userId, taskId })
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ userId: currentUserId, taskId: taskId })
         });
+        
         const json = await res.json();
         
-        if(json.success) { 
-            alert("✅ " + json.msg); 
-            location.reload(); 
+        if (json.success) {
+            alert("✅ " + (json.msg || "تمت إضافة الرصيد!"));
+            location.reload(); // تحديث الصفحة لتحديث الرصيد وإخفاء المهمة (اختياري)
         } else {
             alert("❌ " + json.error);
-            btn.innerText = oldText;
-            btn.disabled = false;
+            btnElement.innerText = originalText;
+            btnElement.disabled = false;
         }
     } catch (e) {
-        btn.innerText = "خطأ";
+        alert("خطأ في الاتصال");
+        btnElement.innerText = originalText;
+        btnElement.disabled = false;
     }
 }
 
-// تشغيل عند البداية
+// تشغيل الدالة الرئيسية
 init();
-
