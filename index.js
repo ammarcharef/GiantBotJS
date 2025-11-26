@@ -17,12 +17,9 @@ mongoose.connect(MONGO_URL)
     .then(() => console.log('✅ Connected to MongoDB'))
     .catch(err => console.error('❌ DB Error:', err));
 
-// الجداول
 const UserSchema = new mongoose.Schema({
     id: { type: Number, unique: true },
-    name: String,
-    refCode: String,
-    referrer: Number,
+    name: String, refCode: String, referrer: Number,
     fullName: String, phone: String, address: String,
     paymentMethod: String, paymentAccount: String, paymentPassword: String,
     paymentLocked: { type: Boolean, default: false },
@@ -44,7 +41,6 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// التوجيه الرئيسي
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -59,7 +55,7 @@ app.post('/api/register', async (req, res) => {
     try {
         const { userId, fullName, phone, address, method, account, pass } = req.body;
         let user = await User.findOne({ id: userId });
-        if(!user) { // إنشاء مستخدم جديد إذا لم يوجد
+        if(!user) { 
              user = await User.create({ id: userId, name: fullName, refCode: userId });
         }
         if (user.paymentLocked) return res.json({ error: "البيانات مقفلة مسبقاً" });
@@ -92,7 +88,6 @@ app.post('/api/claim', async (req, res) => {
     res.json({ success: true, msg: "تمت الإضافة" });
 });
 
-// أدمن
 app.post('/api/admin', async (req, res) => {
     const { password, action, payload } = req.body;
     if (password !== ADMIN_PASS) return res.json({ error: "Auth Error" });
@@ -102,15 +97,24 @@ app.post('/api/admin', async (req, res) => {
 
 app.listen(PORT, () => console.log(`🚀 Running on port ${PORT}`));
 
-// البوت
+// --- البوت (التعديل الجذري هنا) ---
 const bot = new Telegraf(BOT_TOKEN);
+
 bot.start(async (ctx) => {
     const user = ctx.from;
+    // التأكد من وجود المستخدم في قاعدة البيانات
     let dbUser = await User.findOne({ id: user.id });
     if (!dbUser) await User.create({ id: user.id, name: user.first_name, refCode: user.id });
     
-    ctx.reply(`أهلاً بك في المنصة 🇩🇿\nاضغط بالأسفل للدخول.`, 
-        Markup.keyboard([[Markup.button.webApp("📱 دخول المنصة", `${APP_URL}/`)]]).resize()
+    // ✅ الحل السحري: إرسال الآيدي في الرابط نفسه
+    const webLink = `${APP_URL}/?uid=${user.id}`;
+
+    ctx.reply(
+        `✨ أهلاً بك ${user.first_name} 🇩🇿\n🆔 كودك: \`${user.id}\`\n\n👇 اضغط للدخول المباشر`,
+        Markup.keyboard([
+            [Markup.button.webApp("📱 دخول المنصة", webLink)]
+        ]).resize()
     );
 });
+
 bot.launch();
