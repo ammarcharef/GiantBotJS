@@ -47,11 +47,16 @@ async function init() {
 
 // دالة التسجيل
 async function register() {
-    // محاولة استخدام الآيدي الحقيقي، أو استخدام آيدي عشوائي للتجربة إذا فشل التيلجرام
-    const currentUserId = tg.initDataUnsafe?.user?.id || Math.floor(Math.random() * 1000000);
+    // استخدام الآيدي الحقيقي أو 0 في حال الفشل (سيقوم السيرفر بمعالجته)
+    const userId = tg.initDataUnsafe?.user?.id;
+
+    if (!userId) {
+        alert("خطأ: لم يتم التعرف على حسابك في تيلجرام. أعد تشغيل البوت.");
+        return;
+    }
 
     const data = {
-        userId: currentUserId,
+        userId: userId,
         fullName: document.getElementById('r-name').value,
         phone: document.getElementById('r-phone').value,
         address: document.getElementById('r-addr').value,
@@ -60,31 +65,41 @@ async function register() {
         pass: document.getElementById('r-pass').value
     };
 
-    if (!data.account || !data.pass) return alert("بيانات الدفع مطلوبة!");
+    // التحقق من البيانات
+    if (!data.fullName || !data.account || !data.pass) {
+        alert("⚠️ يرجى ملء جميع الحقول المطلوبة!");
+        return;
+    }
 
-    // زر تحميل
-    const btn = event.target;
-    btn.innerText = "جاري الحفظ...";
+    // تغيير الزر
+    const btn = document.querySelector('button');
+    const oldText = btn.innerText;
+    btn.innerText = "جاري الاتصال...";
     btn.disabled = true;
 
     try {
         const res = await fetch('/api/register', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
         });
+
         const json = await res.json();
         
         if (json.success) {
-            alert("✅ تم التسجيل بنجاح!");
+            alert("✅ تم الحفظ بنجاح! يمكنك بدء العمل الآن.");
             location.reload();
         } else {
-            alert("خطأ: " + (json.error || "حدث خطأ غير معروف"));
-            btn.innerText = "حفظ وبدء العمل ✅";
+            // عرض رسالة الخطأ القادمة من السيرفر
+            alert("❌ خطأ: " + (json.error || "فشلت العملية"));
+            btn.innerText = oldText;
             btn.disabled = false;
         }
     } catch (e) {
-        alert("فشل الاتصال بالسيرفر");
+        alert("❌ فشل الاتصال: تأكد من الانترنت وحاول مجدداً");
+        btn.innerText = oldText;
         btn.disabled = false;
+        console.error(e);
     }
 }
 
@@ -163,3 +178,4 @@ async function claimReward(taskId, btn, oldText) {
 
 // تشغيل عند البداية
 init();
+
