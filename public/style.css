@@ -1,74 +1,68 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
 
 :root {
-    --bg: #050505;
-    --glass: rgba(255, 255, 255, 0.05);
-    --primary: #8b5cf6; /* بنفسجي نيون */
-    --gold: #fbbf24;
-    --text: #ffffff;
+    --bg: #111827; --card: #1f2937;
+    --gold: #f59e0b; --green: #10b981; --text: #f3f4f6;
+    --accent: #3b82f6;
 }
 
-body { background: var(--bg); color: var(--text); font-family: 'Cairo', sans-serif; margin: 0; overflow: hidden; }
+body { background: var(--bg); color: var(--text); font-family: 'Tajawal', sans-serif; margin: 0; height: 100vh; overflow: hidden; }
+.screen { padding: 20px; padding-bottom: 90px; height: 100%; overflow-y: auto; }
+.hidden { display: none !important; }
 
-/* الهيدر المتطور */
-.header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 20px; background: linear-gradient(180deg, rgba(139,92,246,0.1) 0%, transparent 100%);
+/* بطاقة المستوى */
+.level-card {
+    background: linear-gradient(135deg, #1f2937, #111827); border: 1px solid var(--accent);
+    padding: 15px; border-radius: 15px; display: flex; align-items: center; gap: 15px; margin-bottom: 20px;
 }
-.level-circle {
-    width: 50px; height: 50px; border-radius: 50%; border: 2px solid var(--primary);
+.xp-circle {
+    width: 50px; height: 50px; border-radius: 50%; background: var(--accent);
     display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem;
-    box-shadow: 0 0 15px var(--primary);
 }
-.balance-info h1 { margin: 0; font-size: 2rem; text-shadow: 0 0 10px rgba(251, 191, 36, 0.5); color: var(--gold); }
-.profile-btn img { width: 40px; border-radius: 50%; border: 2px solid #fff; }
+.level-info { flex: 1; }
+.progress-bar { width: 100%; height: 6px; background: #374151; border-radius: 3px; margin: 5px 0; }
+.fill { height: 100%; background: var(--gold); width: 0%; transition: 0.5s; border-radius: 3px; }
 
-/* الصفحات */
-.page { height: 75vh; overflow-y: auto; padding: 0 20px; padding-bottom: 100px; display: none; }
-.page.active { display: block; animation: fadeIn 0.4s; }
+/* الرصيد */
+.balance-section { text-align: center; margin-bottom: 30px; }
+.balance-section h1 { font-size: 3rem; margin: 0; color: var(--gold); text-shadow: 0 0 15px rgba(245, 158, 11, 0.2); }
 
-/* البطاقات */
-.glass-card {
-    background: var(--glass); border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 20px; padding: 20px; margin-bottom: 15px;
-    backdrop-filter: blur(10px);
-}
-.task-card {
+/* القوائم */
+.list-area { display: flex; flex-direction: column; gap: 12px; }
+.item-card {
+    background: var(--card); padding: 15px; border-radius: 12px;
     display: flex; justify-content: space-between; align-items: center;
-    background: #111; padding: 15px; border-radius: 15px; margin-bottom: 10px;
-    border-right: 4px solid var(--primary);
+    border-right: 4px solid var(--green);
 }
-.shop-card {
-    background: #111; border-radius: 15px; padding: 15px; text-align: center;
-    border: 1px solid #333;
+.post-card {
+    background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 15px;
+    border: 1px solid #374151;
 }
-.shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; color: var(--gold); font-weight: bold; }
 
-/* الأزرار والنماذج */
-.btn-neon {
-    background: var(--primary); color: white; border: none; padding: 10px 20px;
-    border-radius: 10px; font-weight: bold; width: 100%; margin-top: 10px;
-    box-shadow: 0 0 15px rgba(139, 92, 246, 0.4); cursor: pointer;
-}
-.btn-buy { background: var(--gold); color: black; border: none; padding: 8px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 5px;}
-input {
-    width: 100%; background: #222; border: 1px solid #444; padding: 12px;
-    border-radius: 10px; color: white; margin-bottom: 10px; box-sizing: border-box;
-}
+/* الأزرار */
+.btn-main { width: 100%; padding: 12px; background: var(--gold); border: none; border-radius: 10px; color: #000; font-weight: bold; margin-top: 10px; }
+.btn-action { background: var(--green); color: white; border: none; padding: 8px 20px; border-radius: 8px; font-weight: bold; }
+input, select { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #374151; color: white; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; }
 
-/* النافبار العائم */
+/* النافبار */
 .navbar {
-    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-    width: 80%; background: rgba(30, 30, 30, 0.9); padding: 15px 0;
-    border-radius: 50px; display: flex; justify-content: space-around;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #444;
-    backdrop-filter: blur(10px);
+    position: fixed; bottom: 0; width: 100%; background: var(--card);
+    display: flex; justify-content: space-around; padding: 15px 0;
+    border-top: 1px solid #374151; z-index: 100;
 }
-.nav-item { font-size: 1.5rem; color: #666; transition: 0.3s; cursor: pointer; }
-.nav-item.active { color: var(--primary); transform: translateY(-5px); text-shadow: 0 0 10px var(--primary); }
+.nav-btn { text-align: center; color: #6b7280; font-size: 0.8rem; transition: 0.3s; }
+.nav-btn i { font-size: 1.4rem; display: block; margin-bottom: 4px; }
+.nav-btn.active { color: var(--gold); transform: translateY(-5px); }
 
-/* اللودر */
-.loader-screen { position: fixed; top:0; left:0; width:100%; height:100%; background:#000; display:flex; justify-content:center; align-items:center; z-index:999; }
-.cube { width: 40px; height: 40px; background: var(--primary); animation: rotate 1s infinite; }
-@keyframes rotate { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+/* المودال */
+.modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; justify-content:center; align-items:center; z-index:200; }
+.modal-content { background: var(--card); padding: 20px; border-radius: 15px; width: 85%; }
+.modal-btns { display: flex; gap: 10px; margin-top: 10px; }
+.modal-btns button { flex: 1; padding: 10px; border-radius: 8px; border: none; font-weight: bold; }
+.btn-confirm { background: var(--green); color: white; }
+.btn-cancel { background: #ef4444; color: white; }
+
+.logo-spinner { width: 50px; height: 50px; border: 5px solid var(--gold); border-radius: 50%; border-top-color: transparent; animation: spin 1s infinite; margin-bottom: 15px; }
+#loader { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--bg); display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:999; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
