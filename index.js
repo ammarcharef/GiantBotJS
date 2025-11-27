@@ -5,167 +5,271 @@ const mongoose = require('mongoose');
 const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
+const compression = require('compression');
 
+// --- إعدادات البيئة ---
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const MONGO_URL = process.env.MONGO_URL;
 const ADMIN_PASS = process.env.ADMIN_PASSWORD || "admin123";
 const PORT = process.env.PORT || 3000;
 const APP_URL = process.env.RENDER_EXTERNAL_URL;
 
-mongoose.connect(MONGO_URL).then(() => console.log('✅ Full System DB Connected'));
+// --- قاعدة البيانات ---
+mongoose.connect(MONGO_URL)
+    .then(() => console.log('✅ DB Connected'))
+    .catch(err => console.error('❌ DB Error:', err));
 
-// --- الجداول الشاملة ---
+// --- الجداول (Schema) ---
 const UserSchema = new mongoose.Schema({
     id: { type: Number, unique: true },
-    name: String, refCode: String, referrer: Number,
-    fullName: String, phone: String, 
+    name: String,
+    refCode: String,
+    referrer: Number,
+    // الملف الشخصي
+    fullName: String, phone: String, address: String,
     paymentMethod: String, paymentAccount: String, paymentPassword: String,
     paymentLocked: { type: Boolean, default: false },
+    // المحفظة
     balance: { type: Number, default: 0.00 },
     totalEarned: { type: Number, default: 0.00 },
     xp: { type: Number, default: 0 },
     level: { type: Number, default: 1 },
-    badge: { type: String, default: "عضو جديد" },
-    notifications: [{ msg: String, date: { type: Date, default: Date.now }, read: Boolean }],
+    // الأمان
+    redeemedCoupons: [String],
     isBanned: { type: Boolean, default: false },
     joinedAt: { type: Date, default: Date.now }
 });
 const User = mongoose.model('User', UserSchema);
 
 const TaskSchema = new mongoose.Schema({
-    title: String, url: String, price: Number, reward: Number, seconds: Number, active: { type: Boolean, default: true }
+    title: String, url: String, fullPrice: Number, seconds: Number,
+    active: { type: Boolean, default: true }
 });
 const Task = mongoose.model('Task', TaskSchema);
 
-// نظام التذاكر (الدعم الفني)
-const TicketSchema = new mongoose.Schema({
-    userId: Number, subject: String, message: String,
-    reply: String, status: { type: String, default: 'open' }, // open, closed
+const TransactionSchema = new mongoose.Schema({
+    userId: Number, type: String, amount: Number, details: String,
     date: { type: Date, default: Date.now }
 });
-const Ticket = mongoose.model('Ticket', TicketSchema);
+const Transaction = mongoose.model('Transaction', TransactionSchema);
 
 const WithdrawalSchema = new mongoose.Schema({
-    userId: Number, amount: Number, method: String, account: String,
-    status: { type: String, default: 'pending' }, date: { type: Date, default: Date.now }
+    userId: Number, userName: String, amount: Number, method: String, account: String,
+    status: { type: String, default: 'pending' },
+    date: { type: Date, default: Date.now }
 });
 const Withdrawal = mongoose.model('Withdrawal', WithdrawalSchema);
 
+const CouponSchema = new mongoose.Schema({
+    code: String, amount: Number, maxUses: Number, used: { type: Number, default: 0 }
+});
+const Coupon = mongoose.model('Coupon', CouponSchema);
+
 // --- السيرفر ---
 const app = express();
-app.use(express.json());
+app.use(compression());
+app.use(helmet({ contentSecurityPolicy: false })); // للسماح للتيلجرام بالعمل
 app.use(cors());
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(rateLimit({ windowMs: 15*60*1000, max: 300 }));
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 // --- دوال مساعدة ---
-async function notify(userId, msg) {
-    await User.findOneAndUpdate({ id: userId }, { $push: { notifications: { msg, read: false } } });
+async function logTrans(userId, type, amount, details) {
+    await Transaction.create({ userId, type, amount, details });
 }
 
 // --- APIs ---
 
+// 1. جلب البيانات (أو الإنشاء الصامت)
 app.get('/api/user/:id', async (req, res) => {
     let user = await User.findOne({ id: req.params.id });
     if (!user) return res.json({ notFound: true });
-    // إرسال آخر 5 إشعارات فقط لتخفيف الحمل
-    const recentNotifs = user.notifications.reverse().slice(0, 5);
-    res.json({ ...user._doc, notifications: recentNotifs });
+    
+    // تحديث المستوى بناءً على الخبرة
+    const newLevel = Math.floor(Math.sqrt(user.xp / 100)) + 1;
+    if (newLevel > user.level) {
+        user.level = newLevel;
+        await user.save();
+    }
+    res.json(user);
 });
 
-// المهام والربح
+// 2. التسجيل
+app.post('/api/register', async (req, res) => {
+    const { userId, fullName, phone, address, method, account, pass } = req.body;
+    let user = await User.findOne({ id: userId });
+    
+    if (!user) user = await User.create({ id: userId, name: fullName, refCode: userId });
+    if (user.paymentLocked) return res.json({ error: "البيانات محفوظة مسبقاً" });
+
+    user.fullName = fullName; user.phone = phone; user.address = address;
+    user.paymentMethod = method; user.paymentAccount = account; user.paymentPassword = pass;
+    user.paymentLocked = true;
+    
+    await user.save();
+    res.json({ success: true });
+});
+
+// 3. المهام
 app.get('/api/tasks', async (req, res) => {
     const tasks = await Task.find({ active: true }).sort({ _id: -1 });
-    res.json(tasks);
+    res.json(tasks.map(t => ({
+        id: t._id, title: t.title, url: t.url, seconds: t.seconds,
+        reward: (t.fullPrice * 0.70).toFixed(2)
+    })));
 });
 
 app.post('/api/claim', async (req, res) => {
     const { userId, taskId } = req.body;
     const task = await Task.findById(taskId);
-    if(!task) return res.json({ error: "Error" });
+    const user = await User.findOne({ id: userId });
+
+    if (!task || !user) return res.json({ error: "Error" });
+
+    const reward = task.fullPrice * 0.70;
     
+    // عملية ذرية لمنع التلاعب
     await User.findOneAndUpdate({ id: userId }, { 
-        $inc: { balance: task.reward, totalEarned: task.reward, xp: 10 } 
+        $inc: { balance: reward, totalEarned: reward, xp: 20 } 
     });
-    res.json({ success: true, msg: "تمت إضافة الأجر" });
+    
+    // عمولة الإحالة
+    if (user.referrer) {
+        await User.findOneAndUpdate({ id: user.referrer }, { $inc: { balance: task.fullPrice * 0.10 } });
+    }
+
+    await logTrans(userId, 'task', reward, `إنجاز: ${task.title}`);
+    res.json({ success: true, msg: "تم احتساب الأجر" });
 });
 
-// الدعم الفني
-app.post('/api/ticket', async (req, res) => {
-    const { userId, subject, message } = req.body;
-    await Ticket.create({ userId, subject, message });
-    res.json({ success: true, msg: "تم فتح التذكرة" });
+// 4. التحويل
+app.post('/api/transfer', async (req, res) => {
+    const { senderId, receiverRef, amount, pass } = req.body;
+    const val = parseFloat(amount);
+    const sender = await User.findOne({ id: senderId });
+
+    if (!sender || sender.paymentPassword !== pass) return res.json({ error: "كلمة المرور خاطئة" });
+    if (sender.balance < val || val < 10) return res.json({ error: "الرصيد غير كافٍ" });
+
+    const receiver = await User.findOne({ refCode: receiverRef });
+    if (!receiver || receiver.id === sender.id) return res.json({ error: "المستلم غير موجود" });
+
+    sender.balance -= val;
+    receiver.balance += val;
+    await sender.save();
+    await receiver.save();
+
+    await logTrans(sender.id, 'transfer_out', -val, `إرسال إلى ${receiver.name}`);
+    await logTrans(receiver.id, 'transfer_in', val, `استلام من ${sender.name}`);
+
+    res.json({ success: true, msg: "تم التحويل" });
 });
 
-app.get('/api/tickets/:id', async (req, res) => {
-    const tickets = await Ticket.find({ userId: req.params.id }).sort({ date: -1 });
-    res.json(tickets);
+// 5. الكوبون
+app.post('/api/redeem', async (req, res) => {
+    const { userId, code } = req.body;
+    const coupon = await Coupon.findOne({ code });
+    const user = await User.findOne({ id: userId });
+
+    if (!coupon || coupon.used >= coupon.maxUses) return res.json({ error: "الكود منتهي" });
+    if (user.redeemedCoupons.includes(code)) return res.json({ error: "مستخدم سابقاً" });
+
+    user.balance += coupon.amount;
+    user.redeemedCoupons.push(code);
+    coupon.used += 1;
+    
+    await user.save();
+    await coupon.save();
+    await logTrans(userId, 'gift', coupon.amount, `كوبون: ${code}`);
+
+    res.json({ success: true, msg: `+${coupon.amount} DZD` });
 });
 
-// السحب
+// 6. السحب
 app.post('/api/withdraw', async (req, res) => {
     const { userId, amount, pass } = req.body;
+    const val = parseFloat(amount);
     const user = await User.findOne({ id: userId });
-    
-    if(user.paymentPassword !== pass) return res.json({ error: "كلمة المرور خاطئة" });
-    if(user.balance < amount) return res.json({ error: "الرصيد غير كافٍ" });
-    
-    user.balance -= parseFloat(amount);
+
+    if (user.paymentPassword !== pass) return res.json({ error: "كلمة المرور خاطئة" });
+    if (user.balance < val || val < 500) return res.json({ error: "الرصيد غير كافٍ (أقل من 500)" });
+
+    user.balance -= val;
     await user.save();
     
-    await Withdrawal.create({ userId, amount, method: user.paymentMethod, account: user.paymentAccount });
-    await notify(userId, `تم استلام طلب سحب بقيمة ${amount} DZD`);
+    await Withdrawal.create({ 
+        userId, userName: user.fullName, amount: val, 
+        method: user.paymentMethod, account: user.paymentAccount 
+    });
     
-    res.json({ success: true, msg: "الطلب قيد المعالجة" });
+    await logTrans(userId, 'withdraw', -val, 'طلب سحب قيد الانتظار');
+    res.json({ success: true, msg: "تم إرسال الطلب" });
 });
 
-// تغيير كلمة المرور
-app.post('/api/settings/password', async (req, res) => {
-    const { userId, oldPass, newPass } = req.body;
-    const user = await User.findOne({ id: userId });
-    if(user.paymentPassword !== oldPass) return res.json({ error: "كلمة المرور القديمة خاطئة" });
-    
-    user.paymentPassword = newPass;
-    await user.save();
-    await notify(userId, "تم تغيير كلمة مرور المحفظة بنجاح");
-    res.json({ success: true, msg: "تم التغيير بنجاح" });
+// 7. السجل والترتيب
+app.get('/api/history/:id', async (req, res) => {
+    const data = await Transaction.find({ userId: req.params.id }).sort({ date: -1 }).limit(20);
+    res.json(data);
 });
 
-// التسجيل
-app.post('/api/register', async (req, res) => {
-    const { userId, fullName, phone, method, account, pass } = req.body;
-    await User.findOneAndUpdate({ id: userId }, { 
-        fullName, phone, paymentMethod: method, paymentAccount: account, paymentPassword: pass, paymentLocked: true 
-    }, { upsert: true });
-    res.json({ success: true });
+app.get('/api/leaderboard', async (req, res) => {
+    const users = await User.find({ isBanned: false }).sort({ totalEarned: -1 }).limit(10).select('name totalEarned level');
+    res.json(users);
 });
 
-// لوحة الأدمن (للرد على التذاكر)
+// 8. لوحة الأدمن
 app.post('/api/admin', async (req, res) => {
-    if (req.body.password !== ADMIN_PASS) return res.json({ error: "Auth Error" });
-    const { action, payload } = req.body;
+    const { password, action, payload } = req.body;
+    if (password !== ADMIN_PASS) return res.json({ error: "Auth Failed" });
 
-    if (action === 'reply_ticket') {
-        await Ticket.findByIdAndUpdate(payload.id, { reply: payload.reply, status: 'closed' });
-        const t = await Ticket.findById(payload.id);
-        await notify(t.userId, `رد الإدارة على تذكرتك: ${payload.reply}`);
+    if (action === 'data') {
+        const stats = { users: await User.countDocuments(), withdraws: await Withdrawal.countDocuments({ status: 'pending' }) };
+        const withdrawals = await Withdrawal.find().sort({ date: -1 }).limit(50);
+        res.json({ stats, withdrawals });
     }
     if (action === 'add_task') {
-        const reward = payload.price * 0.70;
-        await Task.create({ ...payload, reward });
+        await Task.create(payload);
+        res.json({ success: true });
     }
-    res.json({ success: true });
+    if (action === 'add_coupon') {
+        await Coupon.create(payload);
+        res.json({ success: true });
+    }
+    if (action === 'process_withdraw') {
+        const w = await Withdrawal.findById(payload.id);
+        w.status = payload.status;
+        await w.save();
+        if (payload.status === 'rejected') {
+            await User.findOneAndUpdate({ id: w.userId }, { $inc: { balance: w.amount } });
+            await logTrans(w.userId, 'refund', w.amount, 'سحب مرفوض (استرجاع)');
+        }
+        res.json({ success: true });
+    }
 });
 
-app.listen(PORT, () => console.log(`🚀 Full System on ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 System Online: ${PORT}`));
 
+// --- البوت ---
 const bot = new Telegraf(BOT_TOKEN);
-bot.start((ctx) => {
-    const url = `${APP_URL}/?uid=${ctx.from.id}`;
-    ctx.reply("👋 أهلاً بك في المنصة المتكاملة.\n\n👇 اضغط للدخول:", Markup.keyboard([[Markup.button.webApp("📱 دخول التطبيق", url)]]).resize());
+bot.start(async (ctx) => {
+    const user = ctx.from;
+    const args = ctx.message.text.split(' ');
+    const referrerId = args[1] ? parseInt(args[1]) : null;
+
+    let dbUser = await User.findOne({ id: user.id });
+    if (!dbUser) {
+        await User.create({ 
+            id: user.id, name: user.first_name, refCode: user.id, 
+            referrer: (referrerId && referrerId !== user.id) ? referrerId : null 
+        });
+    }
+    
+    const webLink = `${APP_URL}/?uid=${user.id}`;
+    ctx.reply(
+        `👋 أهلاً بك في المنصة العملاقة 🇩🇿\n🆔 الكود: \`${user.id}\`\n\nاضغط بالأسفل للدخول 👇`,
+        Markup.keyboard([[Markup.button.webApp("📱 دخول المنصة", webLink)]]).resize()
+    );
 });
 bot.launch();
