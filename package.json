@@ -1,8 +1,10 @@
 {
-  "name": "empire-full-system",
-  "version": "8.0.0",
+  "name": "empire-production",
+  "version": "9.0.0",
   "main": "index.js",
-  "scripts": { "start": "node index.js" },
+  "scripts": {
+    "start": "node index.js"
+  },
   "dependencies": {
     "telegraf": "^4.15.0",
     "express": "^4.18.2",
@@ -10,8 +12,9 @@
     "dotenv": "^16.3.1",
     "cors": "^2.8.5",
     "helmet": "^7.1.0",
-    "compression": "^1.7.4",
-    "express-rate-limit": "^7.1.0"
+    "compression": "^1.7.4"
   },
-  "engines": { "node": ">=18.0.0" }
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }
