@@ -1,6 +1,6 @@
 {
-  "name": "halal-empire-system",
-  "version": "7.0.0",
+  "name": "empire-full-system",
+  "version": "8.0.0",
   "main": "index.js",
   "scripts": { "start": "node index.js" },
   "dependencies": {
