@@ -1,80 +1,73 @@
 <!DOCTYPE html>
 <html dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <title>Admin Panel</title>
-    <style>
-        body { background: #000; color: #0f0; font-family: monospace; padding: 20px; }
-        input, button { background: #111; border: 1px solid #0f0; color: #0f0; padding: 10px; margin: 5px; }
-        button:hover { background: #0f0; color: #000; cursor: pointer; }
-        .box { border: 1px solid #333; padding: 15px; margin-bottom: 20px; }
-        h2 { border-bottom: 1px solid #0f0; display: inline-block; }
-        .red { color: red; border-color: red; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        td, th { border: 1px solid #333; padding: 8px; text-align: right; }
-    </style>
-</head>
-<body>
-    <h1>[ SYSTEM ADMIN ]</h1>
-    <input type="password" id="pass" placeholder="PASSWORD">
-    <button onclick="loadData()">ACCESS</button>
-
-    <div id="panel" style="display:none">
-        <div class="box">
-            <h2>STATS</h2>
-            <p>USERS: <span id="s-users">0</span> | PENDING WITHDRAWALS: <span id="s-with">0</span></p>
+<body style="background:#000; color:#0f0; font-family:monospace; padding:20px;">
+    <h1>SYSTEM ADMIN</h1>
+    <input id="pass" type="password" placeholder="Password">
+    <button onclick="login()">LOGIN</button>
+    
+    <div id="panel" style="display:none; margin-top:20px;">
+        <div style="border:1px solid #333; padding:10px; margin-bottom:20px;">
+            <h3>ADD SHOP ITEM</h3>
+            <input id="s-name" placeholder="Name">
+            <input id="s-desc" placeholder="Description">
+            <input id="s-price" type="number" placeholder="Price">
+            <button onclick="addItem()">ADD ITEM</button>
         </div>
 
-        <div class="box">
-            <h2>ADD TASK</h2>
+        <div style="border:1px solid #333; padding:10px;">
+            <h3>ADD TASK</h3>
             <input id="t-title" placeholder="Title">
             <input id="t-url" placeholder="URL">
-            <input id="t-price" type="number" placeholder="Full Price">
+            <input id="t-reward" type="number" placeholder="Reward (DZD)">
+            <input id="t-xp" type="number" placeholder="XP">
             <input id="t-sec" type="number" placeholder="Seconds">
-            <button onclick="addTask()">PUBLISH</button>
+            <button onclick="addTask()">ADD TASK</button>
         </div>
-
-        <div class="box">
-            <h2>WITHDRAWALS</h2>
-            <div id="w-list"></div>
-        </div>
+        
+        <h3>PENDING ORDERS</h3>
+        <div id="orders"></div>
     </div>
 
     <script>
-        let password = "";
-        async function loadData() {
-            password = document.getElementById('pass').value;
-            const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password, action:'data'}) });
-            const data = await res.json();
-            if(data.error) return alert("ACCESS DENIED");
-            
+        let pass = "";
+        async function login() {
+            pass = document.getElementById('pass').value;
+            const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pass, action:'stats'}) });
+            const json = await res.json();
+            if(json.error) return alert("Wrong");
             document.getElementById('panel').style.display = 'block';
-            document.getElementById('s-users').innerText = data.stats.users;
-            document.getElementById('s-with').innerText = data.stats.withdrawalPending;
-            
-            document.getElementById('w-list').innerHTML = data.withdrawals.map(w => `
-                <div style="border-bottom:1px solid #333; padding:5px;">
-                    [${w.amount} DZD] ${w.userName} -> ${w.method} (${w.account})
-                    <button onclick="proc('${w._id}', 'paid')">PAY</button>
-                    <button class="red" onclick="proc('${w._id}', 'rejected')">REJECT</button>
-                </div>
-            `).join('');
+            renderOrders(json.orders);
+        }
+        
+        function renderOrders(list) {
+            document.getElementById('orders').innerHTML = list.map(o => `<div>${o.item} - ${o.price} DZD <button onclick="pay('${o._id}')">DONE</button></div>`).join('');
+        }
+
+        async function addItem() {
+            const payload = {
+                name: document.getElementById('s-name').value,
+                description: document.getElementById('s-desc').value,
+                price: document.getElementById('s-price').value
+            };
+            await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pass, action:'add_item', payload}) });
+            alert("Added");
         }
 
         async function addTask() {
             const payload = {
                 title: document.getElementById('t-title').value,
                 url: document.getElementById('t-url').value,
-                fullPrice: document.getElementById('t-price').value,
+                reward: document.getElementById('t-reward').value,
+                xpReward: document.getElementById('t-xp').value,
                 seconds: document.getElementById('t-sec').value
             };
-            await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password, action:'add_task', payload}) });
-            alert("TASK ADDED"); loadData();
+            await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pass, action:'add_task', payload}) });
+            alert("Added");
         }
-
-        async function proc(id, status) {
-            await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password, action:'process_withdraw', payload:{id, status}}) });
-            alert("PROCESSED"); loadData();
+        
+        async function pay(id) {
+            await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pass, action:'pay_order', payload:{id}}) });
+            alert("Paid");
         }
     </script>
 </body>
