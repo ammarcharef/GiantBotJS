@@ -201,7 +201,7 @@ async function loadLeaderboard() {
 }
 
 function openSupport() {
-    tg.openTelegramLink('https://t.me/YOUR_SUPPORT_USERNAME');
+    tg.openTelegramLink('https://t.me/+Cb5M_sW2bZFmYjhk');
 }
 
 init();
