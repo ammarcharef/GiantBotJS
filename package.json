@@ -1,10 +1,8 @@
 {
-  "name": "empire-bot-os",
-  "version": "5.0.0",
+  "name": "halal-empire-system",
+  "version": "7.0.0",
   "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
+  "scripts": { "start": "node index.js" },
   "dependencies": {
     "telegraf": "^4.15.0",
     "express": "^4.18.2",
@@ -13,9 +11,7 @@
     "cors": "^2.8.5",
     "helmet": "^7.1.0",
     "compression": "^1.7.4",
-    "morgan": "^1.10.0"
+    "express-rate-limit": "^7.1.0"
   },
-  "engines": {
-    "node": ">=18.0.0"
-  }
+  "engines": { "node": ">=18.0.0" }
 }
