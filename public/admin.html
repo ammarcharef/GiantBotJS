@@ -1,73 +1,113 @@
 <!DOCTYPE html>
 <html dir="rtl">
-<body style="background:#000; color:#0f0; font-family:monospace; padding:20px;">
-    <h1>SYSTEM ADMIN</h1>
-    <input id="pass" type="password" placeholder="Password">
-    <button onclick="login()">LOGIN</button>
-    
-    <div id="panel" style="display:none; margin-top:20px;">
-        <div style="border:1px solid #333; padding:10px; margin-bottom:20px;">
-            <h3>ADD SHOP ITEM</h3>
-            <input id="s-name" placeholder="Name">
-            <input id="s-desc" placeholder="Description">
-            <input id="s-price" type="number" placeholder="Price">
-            <button onclick="addItem()">ADD ITEM</button>
+<head>
+    <meta charset="UTF-8">
+    <title>Master Admin</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { overflow: auto; background: #000; padding: 20px; }
+        .glass { background: #111; border: 1px solid #333; }
+        input, button { border-radius: 5px; }
+        .chart-container { height: 300px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div style="max-width:900px; margin:auto;">
+        <div class="glass" style="display:flex; justify-content:space-between; align-items:center;">
+            <h2>👑 لوحة الإمبراطور</h2>
+            <div>
+                <input type="password" id="pass" placeholder="كلمة السر" style="width:150px;">
+                <button class="btn-act" onclick="auth()">دخول</button>
+            </div>
         </div>
 
-        <div style="border:1px solid #333; padding:10px;">
-            <h3>ADD TASK</h3>
-            <input id="t-title" placeholder="Title">
-            <input id="t-url" placeholder="URL">
-            <input id="t-reward" type="number" placeholder="Reward (DZD)">
-            <input id="t-xp" type="number" placeholder="XP">
-            <input id="t-sec" type="number" placeholder="Seconds">
-            <button onclick="addTask()">ADD TASK</button>
+        <div id="panel" class="hidden">
+            <div class="grid-menu">
+                <div>👥 مستخدمين <br><span id="s-usr" class="gold">0</span></div>
+                <div>💰 سحوبات معلقة <br><span id="s-wth" class="red">0</span></div>
+            </div>
+
+            <div class="glass">
+                <h3>➕ إضافة مهمة جديدة</h3>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <input id="t-title" placeholder="العنوان">
+                    <input id="t-url" placeholder="الرابط">
+                    <input id="t-price" type="number" placeholder="السعر الكامل">
+                    <input id="t-sec" type="number" placeholder="الثواني">
+                </div>
+                <button class="btn primary" onclick="addTask()">نشر المهمة 🚀</button>
+            </div>
+
+            <div class="glass">
+                <h3>🎟️ إصدار كوبون</h3>
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+                    <input id="c-code" placeholder="الكود">
+                    <input id="c-amnt" type="number" placeholder="المبلغ">
+                    <input id="c-max" type="number" placeholder="العدد الأقصى">
+                </div>
+                <button class="btn primary" onclick="addCoupon()">إنشاء</button>
+            </div>
+
+            <h3>طلبـات السحب</h3>
+            <div id="w-list"></div>
         </div>
-        
-        <h3>PENDING ORDERS</h3>
-        <div id="orders"></div>
     </div>
 
     <script>
         let pass = "";
-        async function login() {
+        async function auth() {
             pass = document.getElementById('pass').value;
-            const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pass, action:'stats'}) });
-            const json = await res.json();
-            if(json.error) return alert("Wrong");
-            document.getElementById('panel').style.display = 'block';
-            renderOrders(json.orders);
+            loadData();
         }
-        
-        function renderOrders(list) {
-            document.getElementById('orders').innerHTML = list.map(o => `<div>${o.item} - ${o.price} DZD <button onclick="pay('${o._id}')">DONE</button></div>`).join('');
-        }
-
-        async function addItem() {
-            const payload = {
-                name: document.getElementById('s-name').value,
-                description: document.getElementById('s-desc').value,
-                price: document.getElementById('s-price').value
-            };
-            await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pass, action:'add_item', payload}) });
-            alert("Added");
+        async function loadData() {
+            const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pass, action:'data'}) });
+            const data = await res.json();
+            if(data.error) return alert("كلمة السر خاطئة");
+            
+            document.getElementById('panel').classList.remove('hidden');
+            document.getElementById('s-usr').innerText = data.stats.users;
+            document.getElementById('s-wth').innerText = data.stats.withdraws;
+            
+            document.getElementById('w-list').innerHTML = data.withdrawals.map(w => `
+                <div class="glass" style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <div style="font-weight:bold; font-size:1.1rem">${w.amount} DZD</div>
+                        <div style="color:#aaa">${w.userName} | ${w.method}</div>
+                        <div style="color:#fbbf24">${w.account}</div>
+                    </div>
+                    <div>
+                        <button class="btn-act" onclick="proc('${w._id}', 'paid')">تم الدفع</button>
+                        <button class="btn danger" style="padding:5px 15px; margin-top:0;" onclick="proc('${w._id}', 'rejected')">رفض</button>
+                    </div>
+                </div>
+            `).join('');
         }
 
         async function addTask() {
             const payload = {
                 title: document.getElementById('t-title').value,
                 url: document.getElementById('t-url').value,
-                reward: document.getElementById('t-reward').value,
-                xpReward: document.getElementById('t-xp').value,
+                fullPrice: document.getElementById('t-price').value,
                 seconds: document.getElementById('t-sec').value
             };
-            await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pass, action:'add_task', payload}) });
-            alert("Added");
+            await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pass, action:'add_task', payload}) });
+            alert("تم النشر");
         }
-        
-        async function pay(id) {
-            await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pass, action:'pay_order', payload:{id}}) });
-            alert("Paid");
+
+        async function addCoupon() {
+            const payload = {
+                code: document.getElementById('c-code').value,
+                amount: document.getElementById('c-amnt').value,
+                maxUses: document.getElementById('c-max').value
+            };
+            await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pass, action:'add_coupon', payload}) });
+            alert("تم الإنشاء");
+        }
+
+        async function proc(id, status) {
+            if(!confirm("هل أنت متأكد؟")) return;
+            await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pass, action:'process_withdraw', payload:{id, status}}) });
+            loadData();
         }
     </script>
 </body>
