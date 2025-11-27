@@ -1,52 +1,41 @@
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
-
-:root { --bg: #0f172a; --card: #1e293b; --gold: #fbbf24; --text: #f1f5f9; --green: #10b981; --red: #ef4444; }
+:root { --bg: #0f172a; --card: #1e293b; --gold: #fbbf24; --text: #f8fafc; --green: #10b981; --red: #ef4444; }
 body { background: var(--bg); color: var(--text); font-family: 'Tajawal', sans-serif; margin: 0; height: 100vh; overflow: hidden; }
 .screen { padding: 20px; padding-bottom: 80px; height: 100%; overflow-y: auto; }
 .hidden { display: none !important; }
 
-/* Header */
-.top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.user-greet { display: flex; align-items: center; gap: 10px; }
-.user-greet img { width: 40px; border-radius: 50%; border: 2px solid var(--gold); }
-.user-greet h4 { margin: 0; }
-.badge { font-size: 0.7rem; background: rgba(251, 191, 36, 0.2); color: var(--gold); padding: 2px 8px; border-radius: 10px; }
-.notification-icon { font-size: 1.2rem; position: relative; cursor: pointer; }
-#notif-dot { position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; background: var(--red); border-radius: 50%; display: none; }
+/* بطاقة الرصيد */
+.header-card { background: linear-gradient(135deg, #fbbf24, #b45309); color: #000; padding: 25px; border-radius: 20px; text-align: center; margin-bottom: 20px; position: relative; box-shadow: 0 10px 20px rgba(251,191,36,0.3); }
+.header-card h1 { margin: 5px 0; font-size: 2.5rem; font-weight: 800; }
+.level-box { position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.2); color: #fff; padding: 5px 10px; border-radius: 10px; font-weight: bold; font-size: 0.8rem; }
+.ref-id { background: rgba(255,255,255,0.3); display: inline-block; padding: 5px 10px; border-radius: 8px; font-weight: bold; margin-top: 10px; }
 
-/* Balance Card */
-.balance-card { background: linear-gradient(135deg, #fbbf24 0%, #b45309 100%); color: #000; padding: 20px; border-radius: 20px; text-align: center; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(251, 191, 36, 0.2); }
-.balance-card h1 { margin: 0; font-size: 2.5rem; }
+/* القائمة السريعة */
+.grid-menu { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 25px; }
+.grid-menu div { background: var(--card); padding: 15px 5px; border-radius: 12px; text-align: center; border: 1px solid #334155; cursor: pointer; }
+.grid-menu i { font-size: 1.4rem; color: var(--gold); display: block; margin-bottom: 5px; }
+.grid-menu span { font-size: 0.75rem; color: #94a3b8; }
 
-/* Menu Grid */
-.menu-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 25px; }
-.menu-grid div { background: var(--card); padding: 15px 5px; border-radius: 12px; text-align: center; font-size: 0.8rem; cursor: pointer; border: 1px solid #334155; }
-.menu-grid i { display: block; font-size: 1.2rem; margin-bottom: 5px; color: var(--gold); }
+/* العناصر */
+.glass { background: rgba(30,41,59,0.9); border: 1px solid #334155; padding: 20px; border-radius: 16px; margin-bottom: 15px; }
+.task-item, .hist-item { background: var(--card); padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border-right: 4px solid var(--gold); margin-bottom: 10px; }
+.btn { width: 100%; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 1rem; }
+.primary { background: var(--gold); color: #000; }
+.danger { background: var(--red); color: white; }
+.sec { background: transparent; color: #aaa; border: 1px solid #555; }
+.btn-act { background: var(--green); color: white; padding: 5px 15px; border-radius: 8px; border: none; }
+input, select { width: 100%; padding: 12px; background: #020617; border: 1px solid #334155; color: white; border-radius: 10px; margin-bottom: 10px; box-sizing: border-box; }
 
-/* Components */
-.glass-card { background: var(--card); padding: 15px; border-radius: 15px; border: 1px solid #334155; margin-bottom: 15px; }
-.item-card { background: var(--card); padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-left: 4px solid var(--gold); }
-.btn-main { width: 100%; padding: 12px; background: var(--gold); border: none; border-radius: 10px; font-weight: bold; margin-top: 10px; cursor: pointer; color: #000; }
-.btn-danger { width: 100%; padding: 12px; background: var(--red); border: none; border-radius: 10px; font-weight: bold; margin-top: 10px; cursor: pointer; color: #fff; }
-.btn-action { background: var(--green); padding: 5px 15px; border-radius: 8px; border: none; color: white; cursor: pointer; }
-input, select, textarea { width: 100%; background: #0b0f19; border: 1px solid #334155; padding: 12px; border-radius: 10px; color: white; margin-bottom: 10px; box-sizing: border-box; }
-
-/* Page Header */
-.page-head { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; font-size: 1.2rem; cursor: pointer; }
-
-/* Navbar */
+/* النافبار */
 .navbar { position: fixed; bottom: 0; width: 100%; background: var(--card); display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #334155; z-index: 100; }
-.nav-item { text-align: center; color: #64748b; font-size: 0.75rem; cursor: pointer; }
-.nav-item.active { color: var(--gold); } .nav-item i { font-size: 1.3rem; display: block; margin-bottom: 3px; }
+.nav-item { text-align: center; color: #64748b; font-size: 0.75rem; transition: 0.3s; }
+.nav-item i { font-size: 1.3rem; display: block; margin-bottom: 3px; }
+.nav-item.active { color: var(--gold); transform: translateY(-3px); }
 
-/* Tickets & Notifs */
-.ticket-item { background: #0b0f19; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem; }
-.status-open { color: var(--green); } .status-closed { color: var(--red); }
-.notif-item { padding: 10px; border-bottom: 1px solid #334155; font-size: 0.9rem; }
-.text-content p { line-height: 1.6; color: #ccc; }
-
+table { width: 100%; border-collapse: collapse; } td, th { padding: 10px; border-bottom: 1px solid #333; text-align: right; }
+.gold { color: var(--gold); } .center { text-align: center; } .sub { font-size: 0.85rem; color: #aaa; margin-top: -10px; margin-bottom: 15px; }
 #loader { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--bg); display:flex; justify-content:center; align-items:center; z-index:999; }
-.spinner { width: 40px; height: 40px; border: 4px solid #334155; border-top: 4px solid var(--gold); border-radius: 50%; animation: spin 1s infinite; }
+.spinner { width: 40px; height: 40px; border: 4px solid #333; border-top: 4px solid var(--gold); border-radius: 50%; animation: spin 1s infinite; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
-.toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--green); padding: 10px 20px; border-radius: 20px; z-index: 2000; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+.toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--green); color: white; padding: 10px 20px; border-radius: 20px; z-index: 2000; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
 .toast.error { background: var(--red); }
