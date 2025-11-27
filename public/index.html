@@ -3,87 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Empire</title>
+    <title>Platform</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://telegram.org/js/telegram-web-app.js?v=7.10"></script>
 </head>
 <body>
-    <div id="loader">
-        <div class="logo-spinner"></div>
-        <p>جاري تحميل الإمبراطورية...</p>
-    </div>
+    <div id="loader"><div class="spinner"></div></div>
+    <div id="toast" class="toast hidden"></div>
 
     <div id="register-screen" class="screen hidden">
         <div class="glass-card">
-            <div class="icon-header"><i class="fas fa-passport"></i></div>
-            <h2>إنشاء الهوية</h2>
-            <p>بياناتك محمية بقوانين صارمة</p>
+            <h2>🔐 إنشاء هوية</h2>
+            <p>بياناتك محمية ومشفرة</p>
             <input id="r-name" placeholder="الاسم الكامل">
             <input id="r-phone" type="tel" placeholder="رقم الهاتف">
             <hr>
-            <select id="r-method"><option value="CCP">بريد الجزائر (CCP)</option><option value="Baridi">BaridiMob</option></select>
+            <select id="r-method"><option value="CCP">بريد الجزائر</option><option value="Baridi">BaridiMob</option></select>
             <input id="r-acc" placeholder="رقم الحساب (RIP)">
-            <input id="r-pass" type="password" placeholder="كلمة سر المحفظة">
-            <button class="btn-main" onclick="register()">إصدار الهوية ✅</button>
+            <input id="r-pass" type="password" placeholder="كلمة سر السحب">
+            <button class="btn-main" onclick="register()">حفظ البيانات ✅</button>
         </div>
     </div>
 
     <div id="home-screen" class="screen hidden">
-        <div class="level-card">
-            <div class="xp-circle">
-                <span id="lvl-num">1</span>
+        <div class="top-header">
+            <div class="user-greet">
+                <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="user">
+                <div>
+                    <h4>مرحباً، <span id="u-name">...</span></h4>
+                    <span class="badge" id="u-badge">عضو</span>
+                </div>
             </div>
-            <div class="level-info">
-                <h3 id="user-badge">مبتدئ</h3>
-                <div class="progress-bar"><div class="fill" id="xp-fill"></div></div>
-                <small><span id="user-xp">0</span> XP</small>
-            </div>
+            <i class="fas fa-bell notification-icon" onclick="showTab('notifications')"><span id="notif-dot"></span></i>
         </div>
 
-        <div class="balance-section">
-            <p>الرصيد المتاح</p>
-            <h1><span id="balance">0.00</span> <small>DZD</small></h1>
+        <div class="balance-card">
+            <p>الرصيد الحالي</p>
+            <h1 class="gold"><span id="balance">0.00</span> <small>DZD</small></h1>
         </div>
 
-        <h3 class="section-title">💼 مهام العمل</h3>
-        <div id="tasks-container" class="list-area"></div>
+        <div class="menu-grid">
+            <div onclick="showTab('support')"><i class="fas fa-headset"></i> دعم</div>
+            <div onclick="showTab('settings')"><i class="fas fa-cog"></i> إعدادات</div>
+            <div onclick="showTab('terms')"><i class="fas fa-file-contract"></i> الشروط</div>
+            <div onclick="alert('قريباً')"><i class="fas fa-share-alt"></i> دعوة</div>
+        </div>
+
+        <h3 class="section-title">💼 المهام المتاحة</h3>
+        <div id="tasks-container"></div>
     </div>
 
-    <div id="social-screen" class="screen hidden">
-        <div class="page-header"><h3>📰 مجتمع المنصة</h3></div>
-        <div id="posts-container"></div>
+    <div id="support-screen" class="screen hidden">
+        <div class="page-head"><i class="fas fa-arrow-right" onclick="showTab('home')"></i> <h3>الدعم الفني</h3></div>
+        <div class="glass-card">
+            <h3>فتح تذكرة جديدة</h3>
+            <input id="t-subject" placeholder="الموضوع (مثلاً: مشكلة سحب)">
+            <textarea id="t-msg" placeholder="اكتب تفاصيل مشكلتك هنا..." rows="3"></textarea>
+            <button class="btn-main" onclick="sendTicket()">إرسال التذكرة</button>
+        </div>
+        <h3 class="section-title">تذاكري السابقة</h3>
+        <div id="tickets-list"></div>
+    </div>
+
+    <div id="settings-screen" class="screen hidden">
+        <div class="page-head"><i class="fas fa-arrow-right" onclick="showTab('home')"></i> <h3>الإعدادات</h3></div>
+        <div class="glass-card">
+            <h3>🔐 الأمان</h3>
+            <p>تغيير كلمة مرور السحب</p>
+            <input id="set-old" type="password" placeholder="كلمة المرور الحالية">
+            <input id="set-new" type="password" placeholder="كلمة المرور الجديدة">
+            <button class="btn-main" onclick="changePass()">تحديث</button>
+        </div>
+        <div class="glass-card">
+            <h3>ℹ️ عن التطبيق</h3>
+            <p>الإصدار: 8.0.0 (النسخة الذهبية)</p>
+            <p>المعرف الخاص: <span id="my-uid" class="gold">...</span></p>
+        </div>
+    </div>
+
+    <div id="terms-screen" class="screen hidden">
+        <div class="page-head"><i class="fas fa-arrow-right" onclick="showTab('home')"></i> <h3>القواعد والشروط</h3></div>
+        <div class="glass-card text-content">
+            <h3>بسم الله الرحمن الرحيم</h3>
+            <p>1. هذه المنصة تعمل بنظام "الجعالة" (أجر مقابل عمل)، وهي خالية من الربا والقمار.</p>
+            <p>2. يمنع استخدام حسابات وهمية أو ثغرات، وهذا يعتبر "أكل أموال الناس بالباطل".</p>
+            <p>3. الإدارة تضمن حقك في السحب طالما التزمت بالقوانين.</p>
+            <p>4. مدة معالجة السحب من 24 إلى 72 ساعة.</p>
+        </div>
+    </div>
+
+    <div id="notifications-screen" class="screen hidden">
+        <div class="page-head"><i class="fas fa-arrow-right" onclick="showTab('home')"></i> <h3>الإشعارات</h3></div>
+        <div id="notif-list"></div>
     </div>
 
     <div id="wallet-screen" class="screen hidden">
         <div class="glass-card">
-            <h3>💳 العمليات المالية</h3>
-            <div class="wallet-actions">
-                <button onclick="openModal('transfer')"><i class="fas fa-paper-plane"></i> تحويل</button>
-                <button onclick="alert('السحب متاح قريباً')"><i class="fas fa-download"></i> سحب</button>
-            </div>
+            <h3>طلب سحب</h3>
+            <p>وسيلة الدفع: <span id="w-method" class="gold">...</span></p>
+            <p>الحساب: <span id="w-acc" class="gold">...</span></p>
+            <hr>
+            <input id="w-amount" type="number" placeholder="المبلغ">
+            <input id="w-pass" type="password" placeholder="كلمة السر">
+            <button class="btn-danger" onclick="withdraw()">سحب الآن</button>
         </div>
-        <h3 class="section-title">سجل الفواتير</h3>
-        <div id="invoices-container" class="list-area"></div>
     </div>
 
-    <div class="navbar">
-        <div class="nav-btn active" onclick="nav('home')"><i class="fas fa-briefcase"></i><span>عمل</span></div>
-        <div class="nav-btn" onclick="nav('social')"><i class="fas fa-users"></i><span>مجتمع</span></div>
-        <div class="nav-btn" onclick="nav('wallet')"><i class="fas fa-wallet"></i><span>مالية</span></div>
-    </div>
-
-    <div id="transfer-modal" class="modal hidden">
-        <div class="modal-content">
-            <h3>إرسال أموال</h3>
-            <input id="tr-code" placeholder="كود المستلم">
-            <input id="tr-amount" type="number" placeholder="المبلغ">
-            <input id="tr-pass" type="password" placeholder="كلمة السر">
-            <div class="modal-btns">
-                <button class="btn-cancel" onclick="closeModal()">إلغاء</button>
-                <button class="btn-confirm" onclick="transfer()">تأكيد</button>
-            </div>
-        </div>
+    <div id="navbar" class="navbar hidden">
+        <div class="nav-item active" onclick="showTab('home')"><i class="fas fa-home"></i><span>الرئيسية</span></div>
+        <div class="nav-item" onclick="showTab('wallet')"><i class="fas fa-wallet"></i><span>المحفظة</span></div>
+        <div class="nav-item" onclick="showTab('support')"><i class="fas fa-headset"></i><span>دعم</span></div>
     </div>
 
     <script src="script.js"></script>
