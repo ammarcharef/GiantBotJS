@@ -3,59 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>EmpireOS</title>
+    <title>Empire</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://telegram.org/js/telegram-web-app.js?v=7.10"></script>
 </head>
 <body>
-    <div id="app">
-        <div class="header">
-            <div class="level-circle">
-                <span id="lvl">1</span>
-                <div class="xp-ring"></div>
-            </div>
-            <div class="balance-info">
-                <p>المحفظة</p>
-                <h1><span id="balance">0.00</span> <small>DZD</small></h1>
-            </div>
-            <div class="profile-btn" onclick="showPage('profile')">
-                <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="User">
-            </div>
-        </div>
+    <div id="loader">
+        <div class="logo-spinner"></div>
+        <p>جاري تحميل الإمبراطورية...</p>
+    </div>
 
-        <div id="pages">
-            <div id="home-page" class="page active">
-                <h3 class="neon-text">⚡ مهام نشطة</h3>
-                <div id="tasks-list" class="grid-list"></div>
-            </div>
-
-            <div id="shop-page" class="page">
-                <h3 class="neon-text">💎 المتجر الملكي</h3>
-                <p class="sub">استبدل رصيدك بمنتجات حقيقية</p>
-                <div id="shop-list" class="shop-grid"></div>
-            </div>
-
-            <div id="profile-page" class="page">
-                <div class="glass-card">
-                    <h3>بيانات العميل</h3>
-                    <input id="p-name" placeholder="الاسم الكامل">
-                    <input id="p-phone" placeholder="رقم الهاتف">
-                    <input id="p-ccp" placeholder="CCP / BaridiMob">
-                    <button class="btn-neon" onclick="saveProfile()">حفظ البيانات</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="navbar">
-            <div class="nav-item active" onclick="nav('home')"><i class="fas fa-bolt"></i></div>
-            <div class="nav-item" onclick="nav('shop')"><i class="fas fa-store"></i></div>
-            <div class="nav-item" onclick="nav('profile')"><i class="fas fa-user-astronaut"></i></div>
+    <div id="register-screen" class="screen hidden">
+        <div class="glass-card">
+            <div class="icon-header"><i class="fas fa-passport"></i></div>
+            <h2>إنشاء الهوية</h2>
+            <p>بياناتك محمية بقوانين صارمة</p>
+            <input id="r-name" placeholder="الاسم الكامل">
+            <input id="r-phone" type="tel" placeholder="رقم الهاتف">
+            <hr>
+            <select id="r-method"><option value="CCP">بريد الجزائر (CCP)</option><option value="Baridi">BaridiMob</option></select>
+            <input id="r-acc" placeholder="رقم الحساب (RIP)">
+            <input id="r-pass" type="password" placeholder="كلمة سر المحفظة">
+            <button class="btn-main" onclick="register()">إصدار الهوية ✅</button>
         </div>
     </div>
 
-    <div id="loader" class="loader-screen">
-        <div class="cube"></div>
+    <div id="home-screen" class="screen hidden">
+        <div class="level-card">
+            <div class="xp-circle">
+                <span id="lvl-num">1</span>
+            </div>
+            <div class="level-info">
+                <h3 id="user-badge">مبتدئ</h3>
+                <div class="progress-bar"><div class="fill" id="xp-fill"></div></div>
+                <small><span id="user-xp">0</span> XP</small>
+            </div>
+        </div>
+
+        <div class="balance-section">
+            <p>الرصيد المتاح</p>
+            <h1><span id="balance">0.00</span> <small>DZD</small></h1>
+        </div>
+
+        <h3 class="section-title">💼 مهام العمل</h3>
+        <div id="tasks-container" class="list-area"></div>
+    </div>
+
+    <div id="social-screen" class="screen hidden">
+        <div class="page-header"><h3>📰 مجتمع المنصة</h3></div>
+        <div id="posts-container"></div>
+    </div>
+
+    <div id="wallet-screen" class="screen hidden">
+        <div class="glass-card">
+            <h3>💳 العمليات المالية</h3>
+            <div class="wallet-actions">
+                <button onclick="openModal('transfer')"><i class="fas fa-paper-plane"></i> تحويل</button>
+                <button onclick="alert('السحب متاح قريباً')"><i class="fas fa-download"></i> سحب</button>
+            </div>
+        </div>
+        <h3 class="section-title">سجل الفواتير</h3>
+        <div id="invoices-container" class="list-area"></div>
+    </div>
+
+    <div class="navbar">
+        <div class="nav-btn active" onclick="nav('home')"><i class="fas fa-briefcase"></i><span>عمل</span></div>
+        <div class="nav-btn" onclick="nav('social')"><i class="fas fa-users"></i><span>مجتمع</span></div>
+        <div class="nav-btn" onclick="nav('wallet')"><i class="fas fa-wallet"></i><span>مالية</span></div>
+    </div>
+
+    <div id="transfer-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>إرسال أموال</h3>
+            <input id="tr-code" placeholder="كود المستلم">
+            <input id="tr-amount" type="number" placeholder="المبلغ">
+            <input id="tr-pass" type="password" placeholder="كلمة السر">
+            <div class="modal-btns">
+                <button class="btn-cancel" onclick="closeModal()">إلغاء</button>
+                <button class="btn-confirm" onclick="transfer()">تأكيد</button>
+            </div>
+        </div>
     </div>
 
     <script src="script.js"></script>
