@@ -22,30 +22,20 @@ async function init() {
         
         document.getElementById('loader').style.display = 'none';
 
-        // 🛑 التحقق من الحظر أولاً (هذا هو التعديل الجديد) 🛑
         if (user.isBanned) {
-            document.body.innerHTML = `
-                <div style="text-align:center; padding:50px; color:#ef4444;">
-                    <i class="fas fa-ban" style="font-size:4rem; margin-bottom:20px;"></i>
-                    <h2>حسابك محظور</h2>
-                    <p>تم إيقاف حسابك بسبب مخالفة القوانين.</p>
-                    <p style="font-size:0.8rem; color:#aaa;">تواصل مع الدعم الفني للمراجعة.</p>
-                </div>
-            `;
-            return; // إيقاف تنفيذ باقي الكود
+            document.body.innerHTML = `<div style="text-align:center; padding:50px; color:#ef4444;"><h2>🚫 حسابك محظور</h2></div>`;
+            return;
         }
 
         if (user.notFound || !user.paymentLocked) {
-            showScreen('register');
+            showScreen('reg');
             if(tg.initDataUnsafe?.user?.first_name) document.getElementById('r-name').value = tg.initDataUnsafe.user.first_name;
         } else {
             showScreen('home');
             document.getElementById('navbar').classList.remove('hidden');
             updateUI(user);
         }
-    } catch (e) {
-        alert("خطأ في الاتصال");
-    }
+    } catch (e) { alert("خطأ في الاتصال"); }
 }
 
 function showScreen(name) {
@@ -58,7 +48,8 @@ function showTab(name) {
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     
     if(name === 'home') { loadTasks(); document.querySelector('.nav-item:nth-child(1)').classList.add('active'); }
-    else if(name === 'wallet') { loadWallet(); document.querySelector('.nav-item:nth-child(2)').classList.add('active'); }
+    else if(name === 'invite') loadRefLink();
+    else if(name === 'wallet') { loadWallet(); document.querySelector('.nav-item:nth-child(3)').classList.add('active'); }
     else if(name === 'history') loadHistory();
     else if(name === 'leaderboard') loadLeaderboard();
 }
@@ -96,7 +87,7 @@ async function register() {
     else showToast(json.error, true);
 }
 
-// 2. المهام (مع الحماية)
+// 2. المهام
 async function loadTasks() {
     const res = await fetch('/api/tasks');
     const tasks = await res.json();
@@ -109,9 +100,7 @@ async function loadTasks() {
 }
 
 function startTask(id, url, sec) {
-    // التحقق من أن المستخدم لا يقوم بمهمتين في نفس الوقت
-    if(activeTaskId) return showToast("أكمل المهمة الحالية أولاً", true);
-
+    if(activeTaskId) return showToast("أكمل المهمة الحالية", true);
     tg.openLink(url);
     activeTaskId = id;
     taskStartTime = Date.now();
@@ -132,31 +121,24 @@ function startTask(id, url, sec) {
 }
 
 async function completeTask(id, btn, oldText, requiredSec) {
-    // حماية الوقت: التأكد من مرور الوقت الفعلي
     const timeElapsed = (Date.now() - taskStartTime) / 1000;
     if(timeElapsed < requiredSec) {
-        activeTaskId = null;
-        btn.disabled = false;
-        btn.innerText = oldText;
-        return showToast("محاولة غش! انتظر الوقت كاملاً", true);
+        activeTaskId = null; btn.disabled = false; btn.innerText = oldText;
+        return showToast("انتظر الوقت كاملاً", true);
     }
 
     const res = await fetch('/api/claim', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({userId, taskId:id}) });
     const json = await res.json();
-    
-    activeTaskId = null; // تصفير المهمة الحالية
+    activeTaskId = null;
     
     if(json.success) { 
         showToast(json.msg); 
-        // تحديث الرصيد فورياً
         let bal = parseFloat(document.getElementById('balance').innerText);
-        document.getElementById('balance').innerText = (bal + 5).toFixed(2); // (تحديث بصري)
+        document.getElementById('balance').innerText = (bal + 5).toFixed(2);
         setTimeout(() => location.reload(), 1000); 
-    }
-    else {
+    } else {
         showToast(json.error, true);
-        btn.disabled = false;
-        btn.innerText = oldText;
+        btn.disabled = false; btn.innerText = oldText;
     }
 }
 
@@ -180,10 +162,16 @@ async function redeem() {
     if(json.success) { showToast(json.msg); setTimeout(() => location.reload(), 1500); } else showToast(json.error, true);
 }
 
+// 🔥 إضافة جديدة: المكافأة اليومية 🔥
+async function claimDaily() {
+    const res = await fetch('/api/daily', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({userId}) });
+    const json = await res.json();
+    if(json.success) { showToast(json.msg); setTimeout(() => location.reload(), 1500); } else showToast(json.error, true);
+}
+
 async function withdraw() {
     const amount = document.getElementById('w-amount').value;
     const pass = document.getElementById('w-pass').value;
-    if(!amount || !pass) return showToast("أكمل البيانات", true);
     const res = await fetch('/api/withdraw', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({userId, amount, pass}) });
     const json = await res.json();
     if(json.success) { showToast(json.msg); setTimeout(() => location.reload(), 1500); } else showToast(json.error, true);
@@ -211,39 +199,36 @@ async function loadHistory() {
 async function loadLeaderboard() {
     const res = await fetch('/api/leaderboard');
     const users = await res.json();
-    document.querySelector('#lb-table tbody').innerHTML = users.map((u, i) => `<tr><td>${i+1}</td><td>${u.name}</td><td>${u.level}</td><td class="gold">${u.totalEarned.toFixed(1)}</td></tr>`).join('');
+    document.querySelector('#lb-table tbody').innerHTML = users.map((u, i) => `<tr><td>${i+1}</td><td>${u.fullName}</td><td>${u.level}</td><td class="gold">${u.totalEarned.toFixed(1)}</td></tr>`).join('');
+}
+
+// رابط الإحالة
+async function loadRefLink() {
+    const res = await fetch(`/api/referrals/${userId}`);
+    const data = await res.json();
+    document.getElementById('ref-count').innerText = data.count;
+    document.getElementById('my-ref-link').innerText = `https://t.me/YacineAS_Bot?start=${userId}`;
+}
+
+function copyRefLink() {
+    const text = document.getElementById('my-ref-link').innerText;
+    navigator.clipboard.writeText(text);
+    showToast("تم النسخ!");
 }
 
 function openSupport() {
     tg.openTelegramLink('https://t.me/+Cb5M_sW2bZFmYjhk');
 }
 
-init();
-
-// --- دالة حذف الحساب ---
+// حذف الحساب
 async function deleteAccount() {
     const pass = document.getElementById('del-pass').value;
-    
-    if (!pass) return showToast("أدخل كلمة المرور أولاً!", true);
-
-    if (confirm("هل أنت متأكد تماماً؟ 🛑\nسيتم حذف رصيدك وكل بياناتك ولن تتمكن من استرجاعها!")) {
-        // تأكيد ثانٍ للأمان
-        if (confirm("تنبيه أخير! هل أنت موافق على الحذف النهائي؟")) {
-            
-            const res = await fetch('/api/settings/delete', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ userId, pass })
-            });
-
-            const json = await res.json();
-
-            if (json.success) {
-                alert("تم حذف حسابك. سيتم إغلاق التطبيق.");
-                tg.close(); // إغلاق التطبيق في تيلجرام
-            } else {
-                showToast(json.error, true);
-            }
-        }
+    if (!pass) return showToast("أدخل كلمة المرور", true);
+    if (confirm("تأكيد الحذف النهائي؟")) {
+        const res = await fetch('/api/settings/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({userId, pass}) });
+        const json = await res.json();
+        if(json.success) { alert("تم الحذف"); tg.close(); } else showToast(json.error, true);
     }
 }
+
+init();
