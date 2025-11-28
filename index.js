@@ -14,6 +14,9 @@ const ADMIN_PASS = process.env.ADMIN_PASSWORD || "admin123";
 const PORT = process.env.PORT || 3000;
 const APP_URL = process.env.RENDER_EXTERNAL_URL;
 
+// --- تهيئة البوت أولاً (لاستخدامه في السيرفر) ---
+const bot = new Telegraf(BOT_TOKEN);
+
 // --- قاعدة البيانات ---
 mongoose.connect(MONGO_URL)
     .then(() => console.log('✅ DB Connected'))
@@ -79,12 +82,10 @@ async function logTrans(userId, type, amount, details) {
 
 // --- APIs ---
 
-// 1. جلب البيانات
 app.get('/api/user/:id', async (req, res) => {
     let user = await User.findOne({ id: req.params.id });
     if (!user) return res.json({ notFound: true });
     
-    // تحديث المستوى
     const newLevel = Math.floor(Math.sqrt(user.xp / 100)) + 1;
     if (newLevel > user.level) {
         user.level = newLevel;
@@ -93,14 +94,12 @@ app.get('/api/user/:id', async (req, res) => {
     res.json(user);
 });
 
-// 2. التسجيل (+ إشعار المحيل)
+// 2. التسجيل (+ الإشعار للمحيل)
 app.post('/api/register', async (req, res) => {
     const { userId, fullName, phone, address, method, account, pass } = req.body;
     let user = await User.findOne({ id: userId });
     
-    // إنشاء تلقائي إذا لم يوجد
     if (!user) user = await User.create({ id: userId, name: fullName, refCode: userId });
-    
     if (user.paymentLocked) return res.json({ error: "البيانات محفوظة مسبقاً" });
 
     user.fullName = fullName; user.phone = phone; user.address = address;
@@ -109,17 +108,22 @@ app.post('/api/register', async (req, res) => {
     
     await user.save();
 
-    // 🔥 إشعار المحيل (إضافة جديدة) 🔥
+    // 🔥🔥 هنا الإشعار: إرسال رسالة للمحيل 🔥🔥
     if (user.referrer) {
         try {
-            await bot.telegram.sendMessage(user.referrer, `🎉 مبروك! انضم عضو جديد لفريقك: ${fullName}\nستحصل على 10% من أرباحه.`);
-        } catch (e) { console.log("Failed to notify referrer"); }
+            await bot.telegram.sendMessage(
+                user.referrer, 
+                `🎉 **إحالة ناجحة جديدة!**\n\nقام العضو **${fullName}** بالتسجيل وإكمال بياناته بنجاح.\n\n💰 ستحصل على 10% من أرباح مهامه تلقائياً.`
+            );
+        } catch (e) {
+            console.log("تعذر إرسال الإشعار للمحيل (ربما حظر البوت)");
+        }
     }
 
     res.json({ success: true });
 });
 
-// 3. المهام
+// 3. المهام + الأرباح
 app.get('/api/tasks', async (req, res) => {
     const tasks = await Task.find({ active: true }).sort({ _id: -1 });
     res.json(tasks.map(t => ({
@@ -141,7 +145,7 @@ app.post('/api/claim', async (req, res) => {
         $inc: { balance: reward, totalEarned: reward, xp: 20 } 
     });
     
-    // عمولة الإحالة
+    // ربح الإحالة (بدون إشعار مزعج، يضاف بصمت)
     if (user.referrer) {
         await User.findOneAndUpdate({ id: user.referrer }, { $inc: { balance: task.fullPrice * 0.10 } });
     }
@@ -170,8 +174,7 @@ app.post('/api/transfer', async (req, res) => {
     await logTrans(sender.id, 'transfer_out', -val, `إرسال إلى ${receiver.name}`);
     await logTrans(receiver.id, 'transfer_in', val, `استلام من ${sender.name}`);
 
-    // إشعار المستلم
-    try { await bot.telegram.sendMessage(receiver.id, `💰 وصلك ${val} DZD من ${sender.fullName}`); } catch(e){}
+    try { await bot.telegram.sendMessage(receiver.id, `💸 وصلك مبلغ ${val} DZD من ${sender.fullName}`); } catch(e){}
 
     res.json({ success: true, msg: "تم التحويل" });
 });
@@ -221,7 +224,7 @@ app.post('/api/withdraw', async (req, res) => {
     const user = await User.findOne({ id: userId });
 
     if (user.paymentPassword !== pass) return res.json({ error: "كلمة المرور خاطئة" });
-    if (user.balance < val || val < 500) return res.json({ error: "الرصيد غير كافٍ (أقل من 500)" });
+    if (user.balance < val || val < 500) return res.json({ error: "الرصيد غير كافٍ" });
 
     user.balance -= val;
     await user.save();
@@ -232,16 +235,25 @@ app.post('/api/withdraw', async (req, res) => {
     });
     
     await logTrans(userId, 'withdraw', -val, 'طلب سحب قيد الانتظار');
+    
+    // إشعار للأدمن (اختياري، يرسل لك رسالة عند وجود سحب جديد)
+    // try { await bot.telegram.sendMessage(YOUR_ADMIN_ID, `🔔 طلب سحب جديد: ${val} DZD`); } catch(e){}
+
     res.json({ success: true, msg: "تم إرسال الطلب" });
 });
 
-// 8. سجل المعاملات
+// 8. جلب الإحالات
+app.get('/api/referrals/:id', async (req, res) => {
+    const count = await User.countDocuments({ referrer: req.params.id });
+    res.json({ count });
+});
+
+// 9. السجل والترتيب
 app.get('/api/history/:id', async (req, res) => {
     const data = await Transaction.find({ userId: req.params.id }).sort({ date: -1 }).limit(20);
     res.json(data);
 });
 
-// 9. المتصدرين
 app.get('/api/leaderboard', async (req, res) => {
     const users = await User.find({ isBanned: false }).sort({ totalEarned: -1 }).limit(10).select('fullName totalEarned level');
     res.json(users);
@@ -251,13 +263,8 @@ app.get('/api/leaderboard', async (req, res) => {
 app.post('/api/settings/delete', async (req, res) => {
     const { userId, pass } = req.body;
     const user = await User.findOne({ id: userId });
-    
     if (!user || user.paymentPassword !== pass) return res.json({ error: "كلمة المرور خاطئة" });
-    
     await User.deleteOne({ id: userId });
-    // يمكن حذف السجلات أيضاً إذا أردت
-    // await Transaction.deleteMany({ userId: userId });
-    
     res.json({ success: true });
 });
 
@@ -287,10 +294,19 @@ app.post('/api/admin', async (req, res) => {
     if (action === 'process_withdraw') {
         const w = await Withdrawal.findById(payload.id);
         w.status = payload.status; await w.save();
+        
+        let msg = "";
         if (payload.status === 'rejected') {
             await User.findOneAndUpdate({ id: w.userId }, { $inc: { balance: w.amount } });
             await logTrans(w.userId, 'refund', w.amount, 'سحب مرفوض');
+            msg = `❌ تم رفض طلب السحب بقيمة ${w.amount} DZD وإعادة المبلغ لمحفظتك.`;
+        } else {
+            msg = `✅ تم دفع ${w.amount} DZD بنجاح إلى حسابك ${w.method}.`;
         }
+        
+        // إشعار المستخدم بحالة السحب
+        try { await bot.telegram.sendMessage(w.userId, msg); } catch(e){}
+        
         res.json({ success: true });
     }
     
@@ -305,13 +321,11 @@ app.post('/api/admin', async (req, res) => {
     }
 });
 
-// تشغيل السيرفر
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running perfectly on port ${PORT}`);
 });
 
-// البوت
-const bot = new Telegraf(BOT_TOKEN);
+// --- البوت ---
 bot.start(async (ctx) => {
     const user = ctx.from;
     const args = ctx.message.text.split(' ');
@@ -330,4 +344,4 @@ bot.start(async (ctx) => {
         Markup.keyboard([[Markup.button.webApp("📱 دخول المنصة", webLink)]]).resize()
     );
 });
-bot.launch().catch(err => console.log("Bot error (ignored if conflict):", err.message));
+bot.launch().catch(err => console.log("Bot error:", err.message));
