@@ -11,6 +11,7 @@ const compression = require('compression');
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const MONGO_URL = process.env.MONGO_URL;
 const ADMIN_PASS = process.env.ADMIN_PASSWORD || "admin123";
+// Render يعين المنفذ تلقائياً، وإذا لم يجده يستخدم 3000
 const PORT = process.env.PORT || 3000;
 const APP_URL = process.env.RENDER_EXTERNAL_URL;
 
@@ -34,6 +35,7 @@ const UserSchema = new mongoose.Schema({
     totalEarned: { type: Number, default: 0.00 },
     xp: { type: Number, default: 0 },
     level: { type: Number, default: 1 },
+    lastDaily: { type: Date, default: null },
     // الأمان
     redeemedCoupons: [String],
     isBanned: { type: Boolean, default: false },
@@ -82,23 +84,18 @@ async function logTrans(userId, type, amount, details) {
 
 // --- APIs ---
 
-// 1. جلب البيانات (أو الإنشاء الصامت)
-// --- إضافة جديدة: حذف الحساب نهائياً ---
-app.post('/api/settings/delete', async (req, res) => {
-    const { userId, pass } = req.body;
-    const user = await User.findOne({ id: userId });
-
-    if (!user) return res.json({ error: "المستخدم غير موجود" });
-    if (user.paymentPassword !== pass) return res.json({ error: "كلمة المرور خاطئة! لا يمكن الحذف." });
-
-    // حذف المستخدم نهائياً
-    await User.deleteOne({ id: userId });
+// 1. جلب البيانات
+app.get('/api/user/:id', async (req, res) => {
+    let user = await User.findOne({ id: req.params.id });
+    if (!user) return res.json({ notFound: true });
     
-    // (اختياري) يمكنك حذف سجلاته أيضاً إذا أردت تنظيفاً كاملاً
-    // await Transaction.deleteMany({ userId: userId });
-    // await Withdrawal.deleteMany({ userId: userId });
-
-    res.json({ success: true, msg: "تم حذف الحساب بنجاح. وداعاً!" });
+    // تحديث المستوى تلقائياً
+    const newLevel = Math.floor(Math.sqrt(user.xp / 100)) + 1;
+    if (newLevel > user.level) {
+        user.level = newLevel;
+        await user.save();
+    }
+    res.json(user);
 });
 
 // 2. التسجيل
@@ -106,7 +103,9 @@ app.post('/api/register', async (req, res) => {
     const { userId, fullName, phone, address, method, account, pass } = req.body;
     let user = await User.findOne({ id: userId });
     
+    // التصحيح التلقائي: إنشاء المستخدم إذا لم يكن موجوداً
     if (!user) user = await User.create({ id: userId, name: fullName, refCode: userId });
+    
     if (user.paymentLocked) return res.json({ error: "البيانات محفوظة مسبقاً" });
 
     user.fullName = fullName; user.phone = phone; user.address = address;
@@ -131,11 +130,10 @@ app.post('/api/claim', async (req, res) => {
     const task = await Task.findById(taskId);
     const user = await User.findOne({ id: userId });
 
-    if (!task || !user) return res.json({ error: "Error" });
+    if (!task || !user || user.isBanned) return res.json({ error: "Error" });
 
     const reward = task.fullPrice * 0.70;
     
-    // عملية ذرية لمنع التلاعب
     await User.findOneAndUpdate({ id: userId }, { 
         $inc: { balance: reward, totalEarned: reward, xp: 20 } 
     });
@@ -149,7 +147,7 @@ app.post('/api/claim', async (req, res) => {
     res.json({ success: true, msg: "تم احتساب الأجر" });
 });
 
-// 4. التحويل
+// 4. التحويل P2P
 app.post('/api/transfer', async (req, res) => {
     const { senderId, receiverRef, amount, pass } = req.body;
     const val = parseFloat(amount);
@@ -159,7 +157,7 @@ app.post('/api/transfer', async (req, res) => {
     if (sender.balance < val || val < 10) return res.json({ error: "الرصيد غير كافٍ" });
 
     const receiver = await User.findOne({ refCode: receiverRef });
-    if (!receiver || receiver.id === sender.id) return res.json({ error: "المستلم غير موجود" });
+    if (!receiver) return res.json({ error: "المستلم غير موجود" });
 
     sender.balance -= val;
     receiver.balance += val;
@@ -192,7 +190,25 @@ app.post('/api/redeem', async (req, res) => {
     res.json({ success: true, msg: `+${coupon.amount} DZD` });
 });
 
-// 6. السحب
+// 6. المكافأة اليومية
+app.post('/api/daily', async (req, res) => {
+    const { userId } = req.body;
+    const user = await User.findOne({ id: userId });
+    const now = new Date();
+
+    if (user.lastDaily && (now - new Date(user.lastDaily)) < 86400000) {
+        return res.json({ error: "عد غداً" });
+    }
+
+    user.balance += 5.00;
+    user.lastDaily = now;
+    await user.save();
+    await logTrans(userId, 'daily', 5.00, "هدية يومية");
+    
+    res.json({ success: true, msg: "حصلت على 5 DZD" });
+});
+
+// 7. السحب
 app.post('/api/withdraw', async (req, res) => {
     const { userId, amount, pass } = req.body;
     const val = parseFloat(amount);
@@ -213,80 +229,78 @@ app.post('/api/withdraw', async (req, res) => {
     res.json({ success: true, msg: "تم إرسال الطلب" });
 });
 
-// 7. السجل والترتيب
+// 8. سجل المعاملات
 app.get('/api/history/:id', async (req, res) => {
     const data = await Transaction.find({ userId: req.params.id }).sort({ date: -1 }).limit(20);
     res.json(data);
 });
 
+// 9. المتصدرين
 app.get('/api/leaderboard', async (req, res) => {
-    const users = await User.find({ isBanned: false }).sort({ totalEarned: -1 }).limit(10).select('name totalEarned level');
+    const users = await User.find({ isBanned: false }).sort({ totalEarned: -1 }).limit(10).select('fullName totalEarned level');
     res.json(users);
 });
 
-// --- لوحة الأدمن الشاملة ---
+// 10. حذف الحساب (من قبل المستخدم)
+app.post('/api/settings/delete', async (req, res) => {
+    const { userId, pass } = req.body;
+    const user = await User.findOne({ id: userId });
+    if (!user || user.paymentPassword !== pass) return res.json({ error: "كلمة المرور خاطئة" });
+    
+    await User.deleteOne({ id: userId });
+    res.json({ success: true });
+});
+
+// 11. لوحة الأدمن (مصححة)
 app.post('/api/admin', async (req, res) => {
     const { password, action, payload } = req.body;
-    if (password !== ADMIN_PASS) return res.json({ error: "كلمة المرور خاطئة" });
+    if (password !== ADMIN_PASS) return res.json({ error: "Auth Failed" });
 
-    // 1. جلب البيانات (التعديل هنا)
+    // بيانات اللوحة (تم إضافة usersList لإظهار الجدول)
     if (action === 'data') {
-        // إحصائيات
-        const stats = { 
-            users: await User.countDocuments(), 
-            withdraws: await Withdrawal.countDocuments({ status: 'pending' }) 
-        };
-        
-        // جلب السحوبات
+        const stats = { users: await User.countDocuments(), withdraws: await Withdrawal.countDocuments({ status: 'pending' }) };
         const withdrawals = await Withdrawal.find().sort({ date: -1 }).limit(50);
-        
-        // 🔥 الإضافة الجديدة: جلب قائمة المستخدمين لجدول الإدارة 🔥
-        const usersList = await User.find().sort({ balance: -1 }).limit(50); 
-        
-        // إرسال كل شيء
+        const usersList = await User.find().sort({ balance: -1 }).limit(50); // <--- هذا السطر كان ناقصاً
         res.json({ stats, withdrawals, usersList });
     }
     
-    // 2. إضافة مهمة
     if (action === 'add_task') {
         const userReward = payload.fullPrice * 0.70;
         await Task.create({ ...payload, userReward });
         res.json({ success: true });
     }
-
-    // 3. إضافة كوبون
+    
     if (action === 'add_coupon') {
         await Coupon.create(payload);
         res.json({ success: true });
     }
-
-    // 4. معالجة السحب
+    
     if (action === 'process_withdraw') {
         const w = await Withdrawal.findById(payload.id);
-        w.status = payload.status;
-        await w.save();
+        w.status = payload.status; await w.save();
         if (payload.status === 'rejected') {
             await User.findOneAndUpdate({ id: w.userId }, { $inc: { balance: w.amount } });
-            await logTrans(w.userId, 'refund', w.amount, 'سحب مرفوض (استرجاع)');
+            await logTrans(w.userId, 'refund', w.amount, 'سحب مرفوض');
         }
         res.json({ success: true });
     }
-
-    // 5. إدارة المستخدم (حظر/حذف)
+    
     if (action === 'manage_user') {
         const { id, type } = payload;
-        if (type === 'delete') {
-            await User.deleteOne({ id: id });
-        } else if (type === 'ban') {
+        if (type === 'delete') await User.deleteOne({ id: id });
+        else if (type === 'ban') {
             const u = await User.findOne({ id: id });
-            if(u) {
-                u.isBanned = !u.isBanned;
-                await u.save();
-            }
+            if(u) { u.isBanned = !u.isBanned; await u.save(); }
         }
         res.json({ success: true });
     }
 });
+
+// --- تشغيل السيرفر (مع إصلاح 0.0.0.0) ---
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server running perfectly on port ${PORT}`);
+});
+
 // --- البوت ---
 const bot = new Telegraf(BOT_TOKEN);
 bot.start(async (ctx) => {
@@ -303,9 +317,8 @@ bot.start(async (ctx) => {
     }
     
     const webLink = `${APP_URL}/?uid=${user.id}`;
-    ctx.reply(
-        `👋 أهلاً بك في المنصة العملاقة 🇩🇿\n🆔 الكود: \`${user.id}\`\n\nاضغط بالأسفل للدخول 👇`,
+    ctx.reply(`👋 مرحباً ${user.first_name} في المنصة!\n🆔 الكود: \`${user.id}\`\n\nاضغط بالأسفل للدخول 👇`, 
         Markup.keyboard([[Markup.button.webApp("📱 دخول المنصة", webLink)]]).resize()
     );
 });
-bot.launch();
+bot.launch().catch(err => console.log("Bot error (ignored if conflict):", err.message));
