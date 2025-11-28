@@ -224,35 +224,43 @@ app.get('/api/leaderboard', async (req, res) => {
     res.json(users);
 });
 
-// 8. لوحة الأدمن
+// --- لوحة الأدمن الشاملة ---
 app.post('/api/admin', async (req, res) => {
     const { password, action, payload } = req.body;
-    if (password !== ADMIN_PASS) return res.json({ error: "Auth Failed" });
+    if (password !== ADMIN_PASS) return res.json({ error: "كلمة المرور خاطئة" });
 
+    // 1. جلب البيانات (التعديل هنا)
     if (action === 'data') {
-        const stats = { users: await User.countDocuments(), withdraws: await Withdrawal.countDocuments({ status: 'pending' }) };
+        // إحصائيات
+        const stats = { 
+            users: await User.countDocuments(), 
+            withdraws: await Withdrawal.countDocuments({ status: 'pending' }) 
+        };
+        
+        // جلب السحوبات
         const withdrawals = await Withdrawal.find().sort({ date: -1 }).limit(50);
-        res.json({ stats, withdrawals });
+        
+        // 🔥 الإضافة الجديدة: جلب قائمة المستخدمين لجدول الإدارة 🔥
+        const usersList = await User.find().sort({ balance: -1 }).limit(50); 
+        
+        // إرسال كل شيء
+        res.json({ stats, withdrawals, usersList });
     }
-    if (action === 'manage_user') {
-        const { id, type } = payload;
-        if (type === 'delete') {
-            await User.deleteOne({ id: id });
-        } else if (type === 'ban') {
-            const u = await User.findOne({ id: id });
-            u.isBanned = !u.isBanned; // عكس الحالة (حظر/فك حظر)
-            await u.save();
-        }
-        res.json({ success: true });
-    }
+    
+    // 2. إضافة مهمة
     if (action === 'add_task') {
-        await Task.create(payload);
+        const userReward = payload.fullPrice * 0.70;
+        await Task.create({ ...payload, userReward });
         res.json({ success: true });
     }
+
+    // 3. إضافة كوبون
     if (action === 'add_coupon') {
         await Coupon.create(payload);
         res.json({ success: true });
     }
+
+    // 4. معالجة السحب
     if (action === 'process_withdraw') {
         const w = await Withdrawal.findById(payload.id);
         w.status = payload.status;
@@ -263,10 +271,22 @@ app.post('/api/admin', async (req, res) => {
         }
         res.json({ success: true });
     }
+
+    // 5. إدارة المستخدم (حظر/حذف)
+    if (action === 'manage_user') {
+        const { id, type } = payload;
+        if (type === 'delete') {
+            await User.deleteOne({ id: id });
+        } else if (type === 'ban') {
+            const u = await User.findOne({ id: id });
+            if(u) {
+                u.isBanned = !u.isBanned;
+                await u.save();
+            }
+        }
+        res.json({ success: true });
+    }
 });
-
-app.listen(PORT, () => console.log(`🚀 System Online: ${PORT}`));
-
 // --- البوت ---
 const bot = new Telegraf(BOT_TOKEN);
 bot.start(async (ctx) => {
