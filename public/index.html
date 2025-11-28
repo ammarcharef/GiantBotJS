@@ -15,7 +15,7 @@
         <div class="logo-spinner" style="margin:auto;"></div>
         <h1 class="gold">منصة الإمبراطورية</h1>
         <p style="color:#ccc; padding:20px;">المنصة الأولى للربح الحقيقي والآمن.<br>انضم لآلاف المستخدمين الآن.</p>
-        <a href="https://t.me/gain_bot_js_bot" class="btn primary" style="display:inline-block; width:80%; text-decoration:none;">فتح في تيلجرام 🚀</a>
+        <a href="https://t.me/YacineAS_Bot" class="btn primary" style="display:inline-block; width:80%; text-decoration:none;">فتح في تيلجرام 🚀</a>
     </div>
 
     <div id="loader"><div class="spinner"></div></div>
@@ -81,7 +81,7 @@
 
     <div id="wallet-screen" class="screen hidden">
         <div class="glass animated">
-            <h3>بياناتي</h3>
+            <h3>👤 بياناتي</h3>
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                 <span style="color:#aaa">الاسم:</span>
                 <span id="w-name" class="gold">...</span>
@@ -91,10 +91,17 @@
                 <span id="w-acc" class="gold">...</span>
             </div>
             <hr>
-            <h3>سحب الأرباح</h3>
+            <h3>💸 سحب الأرباح</h3>
             <input id="w-amount" type="number" placeholder="المبلغ">
             <input id="w-pass" type="password" placeholder="كلمة السر">
             <button class="btn danger" onclick="withdraw()">طلب سحب</button>
+        </div>
+
+        <div class="glass animated" style="border: 1px solid #ef4444; margin-top: 15px;">
+            <h3 style="color:#ef4444; margin-top:0;">⚠️ منطقة الخطر</h3>
+            <p style="font-size:0.8rem; color:#aaa; margin-bottom:10px;">حذف الحساب نهائي ولا يمكن التراجع عنه.</p>
+            <input id="del-pass" type="password" placeholder="أدخل كلمة سر السحب للتأكيد">
+            <button class="btn danger" style="background:#7f1d1d;" onclick="deleteAccount()">حذف حسابي نهائياً</button>
         </div>
     </div>
 
