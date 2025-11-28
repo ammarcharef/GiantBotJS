@@ -11,7 +11,6 @@ const compression = require('compression');
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const MONGO_URL = process.env.MONGO_URL;
 const ADMIN_PASS = process.env.ADMIN_PASSWORD || "admin123";
-// Render يعين المنفذ تلقائياً، وإذا لم يجده يستخدم 3000
 const PORT = process.env.PORT || 3000;
 const APP_URL = process.env.RENDER_EXTERNAL_URL;
 
@@ -20,23 +19,20 @@ mongoose.connect(MONGO_URL)
     .then(() => console.log('✅ DB Connected'))
     .catch(err => console.error('❌ DB Error:', err));
 
-// --- الجداول (Schema) ---
+// --- الجداول ---
 const UserSchema = new mongoose.Schema({
     id: { type: Number, unique: true },
     name: String,
     refCode: String,
     referrer: Number,
-    // الملف الشخصي
     fullName: String, phone: String, address: String,
     paymentMethod: String, paymentAccount: String, paymentPassword: String,
     paymentLocked: { type: Boolean, default: false },
-    // المحفظة
     balance: { type: Number, default: 0.00 },
     totalEarned: { type: Number, default: 0.00 },
     xp: { type: Number, default: 0 },
     level: { type: Number, default: 1 },
     lastDaily: { type: Date, default: null },
-    // الأمان
     redeemedCoupons: [String],
     isBanned: { type: Boolean, default: false },
     joinedAt: { type: Date, default: Date.now }
@@ -70,85 +66,13 @@ const Coupon = mongoose.model('Coupon', CouponSchema);
 // --- السيرفر ---
 const app = express();
 app.use(compression());
-app.use(helmet({ contentSecurityPolicy: false })); // للسماح للتيلجرام بالعمل
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 1. إضافة API لجلب بيانات الإحالة للمستخدم
-app.get('/api/referrals/:id', async (req, res) => {
-    const userId = req.params.id;
-    // عدد الأشخاص الذين دعاهم
-    const count = await User.countDocuments({ referrer: userId });
-    // المستخدم نفسه لمعرفة ربحه من الإحالات (سنحتاج لإضافة حقل refEarnings في قاعدة البيانات أو حسابه)
-    // للتبسيط سنعيد العدد فقط ورابط الدعوة
-    res.json({ count });
-});
-
-// 2. تعديل دالة claim (توزيع الأرباح الحلال)
-app.post('/api/claim', async (req, res) => {
-    const { userId, taskId } = req.body;
-    const task = await Task.findById(taskId);
-    const user = await User.findOne({ id: userId });
-
-    if (!task || !user || user.isBanned) return res.json({ error: "Error" });
-
-    // --- الحسابات المالية ---
-    const userShare = task.fullPrice * 0.70; // 70% للعامل
-    const refShare = task.fullPrice * 0.10;  // 10% للمحيل
-    // الـ 20% الباقية تبقى لك تلقائياً لأننا لم نخرجها من النظام
-
-    // 1. إعطاء العامل حقه
-    await User.findOneAndUpdate({ id: userId }, { 
-        $inc: { balance: userShare, totalEarned: userShare, xp: 20 } 
-    });
-
-    // 2. إعطاء المحيل حقه (إن وجد)
-    if (user.referrer) {
-        // نتحقق أن المحيل موجود ومحظور
-        const referrer = await User.findOne({ id: user.referrer });
-        if (referrer && !referrer.isBanned) {
-            referrer.balance += refShare;
-            await referrer.save();
-            // (اختياري) إرسال إشعار للمحيل
-            // bot.telegram.sendMessage(referrer.id, `💰 ربحت ${refShare} من نشاط فريقك`);
-        }
-    }
-
-    await logTrans(userId, 'task', userShare, `إنجاز: ${task.title}`);
-    res.json({ success: true, msg: "تمت المهمة" });
-});
-
-// 3. تعديل البوت للتأكد من عدم احتساب المسجلين مسبقاً
-bot.start(async (ctx) => {
-    const user = ctx.from;
-    const args = ctx.message.text.split(' ');
-    const referrerId = args[1] ? parseInt(args[1]) : null;
-
-    let dbUser = await User.findOne({ id: user.id });
-    
-    // شرط: المستخدم غير موجود في القاعدة (جديد كلياً)
-    if (!dbUser) {
-        // شرط: لا يمكن أن يحيل الشخص نفسه
-        const validReferrer = (referrerId && referrerId !== user.id) ? referrerId : null;
-        
-        await User.create({ 
-            id: user.id, 
-            name: user.first_name, 
-            refCode: user.id, 
-            referrer: validReferrer // نسجل المحيل فقط إذا كان المستخدم جديداً
-        });
-    }
-    
-    const webLink = `${APP_URL}/?uid=${user.id}`;
-    ctx.reply(`👋 أهلاً بك في المنصة!\n🆔 كودك: \`${user.id}\`\n\n👇 اضغط للدخول`, 
-        Markup.keyboard([[Markup.button.webApp("📱 دخول المنصة", webLink)]]).resize()
-    );
-});
-
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-// --- دوال مساعدة ---
 async function logTrans(userId, type, amount, details) {
     await Transaction.create({ userId, type, amount, details });
 }
@@ -160,7 +84,7 @@ app.get('/api/user/:id', async (req, res) => {
     let user = await User.findOne({ id: req.params.id });
     if (!user) return res.json({ notFound: true });
     
-    // تحديث المستوى تلقائياً
+    // تحديث المستوى
     const newLevel = Math.floor(Math.sqrt(user.xp / 100)) + 1;
     if (newLevel > user.level) {
         user.level = newLevel;
@@ -169,12 +93,12 @@ app.get('/api/user/:id', async (req, res) => {
     res.json(user);
 });
 
-// 2. التسجيل
+// 2. التسجيل (+ إشعار المحيل)
 app.post('/api/register', async (req, res) => {
     const { userId, fullName, phone, address, method, account, pass } = req.body;
     let user = await User.findOne({ id: userId });
     
-    // التصحيح التلقائي: إنشاء المستخدم إذا لم يكن موجوداً
+    // إنشاء تلقائي إذا لم يوجد
     if (!user) user = await User.create({ id: userId, name: fullName, refCode: userId });
     
     if (user.paymentLocked) return res.json({ error: "البيانات محفوظة مسبقاً" });
@@ -184,6 +108,14 @@ app.post('/api/register', async (req, res) => {
     user.paymentLocked = true;
     
     await user.save();
+
+    // 🔥 إشعار المحيل (إضافة جديدة) 🔥
+    if (user.referrer) {
+        try {
+            await bot.telegram.sendMessage(user.referrer, `🎉 مبروك! انضم عضو جديد لفريقك: ${fullName}\nستحصل على 10% من أرباحه.`);
+        } catch (e) { console.log("Failed to notify referrer"); }
+    }
+
     res.json({ success: true });
 });
 
@@ -218,7 +150,7 @@ app.post('/api/claim', async (req, res) => {
     res.json({ success: true, msg: "تم احتساب الأجر" });
 });
 
-// 4. التحويل P2P
+// 4. التحويل
 app.post('/api/transfer', async (req, res) => {
     const { senderId, receiverRef, amount, pass } = req.body;
     const val = parseFloat(amount);
@@ -237,6 +169,9 @@ app.post('/api/transfer', async (req, res) => {
 
     await logTrans(sender.id, 'transfer_out', -val, `إرسال إلى ${receiver.name}`);
     await logTrans(receiver.id, 'transfer_in', val, `استلام من ${sender.name}`);
+
+    // إشعار المستلم
+    try { await bot.telegram.sendMessage(receiver.id, `💰 وصلك ${val} DZD من ${sender.fullName}`); } catch(e){}
 
     res.json({ success: true, msg: "تم التحويل" });
 });
@@ -312,26 +247,29 @@ app.get('/api/leaderboard', async (req, res) => {
     res.json(users);
 });
 
-// 10. حذف الحساب (من قبل المستخدم)
+// 10. حذف الحساب
 app.post('/api/settings/delete', async (req, res) => {
     const { userId, pass } = req.body;
     const user = await User.findOne({ id: userId });
+    
     if (!user || user.paymentPassword !== pass) return res.json({ error: "كلمة المرور خاطئة" });
     
     await User.deleteOne({ id: userId });
+    // يمكن حذف السجلات أيضاً إذا أردت
+    // await Transaction.deleteMany({ userId: userId });
+    
     res.json({ success: true });
 });
 
-// 11. لوحة الأدمن (مصححة)
+// 11. لوحة الأدمن
 app.post('/api/admin', async (req, res) => {
     const { password, action, payload } = req.body;
     if (password !== ADMIN_PASS) return res.json({ error: "Auth Failed" });
 
-    // بيانات اللوحة (تم إضافة usersList لإظهار الجدول)
     if (action === 'data') {
         const stats = { users: await User.countDocuments(), withdraws: await Withdrawal.countDocuments({ status: 'pending' }) };
         const withdrawals = await Withdrawal.find().sort({ date: -1 }).limit(50);
-        const usersList = await User.find().sort({ balance: -1 }).limit(50); // <--- هذا السطر كان ناقصاً
+        const usersList = await User.find().sort({ balance: -1 }).limit(50);
         res.json({ stats, withdrawals, usersList });
     }
     
@@ -367,12 +305,12 @@ app.post('/api/admin', async (req, res) => {
     }
 });
 
-// --- تشغيل السيرفر (مع إصلاح 0.0.0.0) ---
+// تشغيل السيرفر
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running perfectly on port ${PORT}`);
 });
 
-// --- البوت ---
+// البوت
 const bot = new Telegraf(BOT_TOKEN);
 bot.start(async (ctx) => {
     const user = ctx.from;
@@ -388,7 +326,7 @@ bot.start(async (ctx) => {
     }
     
     const webLink = `${APP_URL}/?uid=${user.id}`;
-    ctx.reply(`"أهلاً بك في منصة ياسين التويجر  🇩🇿.. المنصة الأولى للربح الحلال.." ${user.first_name} في المنصة!\n🆔 الكود: \`${user.id}\`\n\nاضغط بالأسفل للدخول 👇`, 
+    ctx.reply(`👋 مرحباً ${user.first_name} في المنصة!\n🆔 الكود: \`${user.id}\`\n\nاضغط بالأسفل للدخول 👇`, 
         Markup.keyboard([[Markup.button.webApp("📱 دخول المنصة", webLink)]]).resize()
     );
 });
