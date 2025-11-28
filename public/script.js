@@ -6,15 +6,14 @@ let userId = null;
 let taskStartTime = 0;
 let activeTaskId = null;
 
+// --- البداية ---
 async function init() {
     const p = new URLSearchParams(window.location.search);
     userId = p.get('uid') || tg.initDataUnsafe?.user?.id;
 
-    // إذا لم يجد الآيدي، يظهر صفحة الهبوط بدلاً من رسالة خطأ
     if (!userId) {
         document.getElementById('loader').style.display = 'none';
-        document.getElementById('landing-page').classList.remove('hidden');
-        return;
+        return alert("يرجى الدخول من البوت");
     }
 
     try {
@@ -23,15 +22,30 @@ async function init() {
         
         document.getElementById('loader').style.display = 'none';
 
+        // 🛑 التحقق من الحظر أولاً (هذا هو التعديل الجديد) 🛑
+        if (user.isBanned) {
+            document.body.innerHTML = `
+                <div style="text-align:center; padding:50px; color:#ef4444;">
+                    <i class="fas fa-ban" style="font-size:4rem; margin-bottom:20px;"></i>
+                    <h2>حسابك محظور</h2>
+                    <p>تم إيقاف حسابك بسبب مخالفة القوانين.</p>
+                    <p style="font-size:0.8rem; color:#aaa;">تواصل مع الدعم الفني للمراجعة.</p>
+                </div>
+            `;
+            return; // إيقاف تنفيذ باقي الكود
+        }
+
         if (user.notFound || !user.paymentLocked) {
-            showScreen('reg');
+            showScreen('register');
             if(tg.initDataUnsafe?.user?.first_name) document.getElementById('r-name').value = tg.initDataUnsafe.user.first_name;
         } else {
             showScreen('home');
             document.getElementById('navbar').classList.remove('hidden');
             updateUI(user);
         }
-    } catch (e) { alert("خطأ في الاتصال بالسيرفر"); }
+    } catch (e) {
+        alert("خطأ في الاتصال");
+    }
 }
 
 function showScreen(name) {
