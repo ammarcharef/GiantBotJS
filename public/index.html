@@ -47,6 +47,43 @@
             <div class="ref-id">ID: <span id="u-id">...</span></div>
         </div>
 
+<div id="invite-screen" class="screen hidden">
+        <div class="header-card" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">
+            <i class="fas fa-users" style="font-size:3rem; margin-bottom:10px;"></i>
+            <h2>فريق العمل</h2>
+            <p>اربح 10% من أرباح كل صديق تدعوه مدى الحياة!</p>
+        </div>
+
+        <div class="grid-menu">
+            <div>
+                <p>عدد فريقك</p>
+                <h2 id="ref-count" class="gold">0</h2>
+            </div>
+            <div>
+                <p>نسبة الربح</p>
+                <h2 class="gold">10%</h2>
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <h3>🔗 رابط الدعوة الخاص بك</h3>
+            <div style="background:#0b0f19; padding:10px; border-radius:8px; border:1px solid #334155; margin-bottom:10px; word-break:break-all; font-size:0.8rem;" id="my-ref-link">
+                جاري التحميل...
+            </div>
+            <button class="btn primary" onclick="copyRefLink()">نسخ الرابط 📋</button>
+        </div>
+
+        <div class="glass-card">
+            <h3>ℹ️ كيف يعمل النظام؟</h3>
+            <ul style="font-size:0.9rem; color:#ccc; list-style:none; padding:0;">
+                <li>1. انسخ الرابط وأرسله لأصدقائك.</li>
+                <li>2. عندما يسجل صديقك، يصبح في فريقك.</li>
+                <li>3. كلما أنجز صديقك مهمة، تحصل أنت فوراً على 10% من سعر المهمة.</li>
+                <li>4. هذا الربح حلال ولا ينقص من أجر صديقك شيئاً.</li>
+            </ul>
+        </div>
+    </div>
+
         <div class="grid-menu animated" style="animation-delay: 0.1s">
             <div onclick="showTab('transfer')"><i class="fas fa-paper-plane"></i><span>تحويل</span></div>
             <div onclick="showTab('coupon')"><i class="fas fa-ticket-alt"></i><span>كوبون</span></div>
