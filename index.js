@@ -83,17 +83,22 @@ async function logTrans(userId, type, amount, details) {
 // --- APIs ---
 
 // 1. جلب البيانات (أو الإنشاء الصامت)
-app.get('/api/user/:id', async (req, res) => {
-    let user = await User.findOne({ id: req.params.id });
-    if (!user) return res.json({ notFound: true });
+// --- إضافة جديدة: حذف الحساب نهائياً ---
+app.post('/api/settings/delete', async (req, res) => {
+    const { userId, pass } = req.body;
+    const user = await User.findOne({ id: userId });
+
+    if (!user) return res.json({ error: "المستخدم غير موجود" });
+    if (user.paymentPassword !== pass) return res.json({ error: "كلمة المرور خاطئة! لا يمكن الحذف." });
+
+    // حذف المستخدم نهائياً
+    await User.deleteOne({ id: userId });
     
-    // تحديث المستوى بناءً على الخبرة
-    const newLevel = Math.floor(Math.sqrt(user.xp / 100)) + 1;
-    if (newLevel > user.level) {
-        user.level = newLevel;
-        await user.save();
-    }
-    res.json(user);
+    // (اختياري) يمكنك حذف سجلاته أيضاً إذا أردت تنظيفاً كاملاً
+    // await Transaction.deleteMany({ userId: userId });
+    // await Withdrawal.deleteMany({ userId: userId });
+
+    res.json({ success: true, msg: "تم حذف الحساب بنجاح. وداعاً!" });
 });
 
 // 2. التسجيل
