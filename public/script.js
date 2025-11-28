@@ -1,10 +1,8 @@
 const tg = window.Telegram.WebApp;
 tg.expand();
 let userId = null;
-
-// --- نظام الأمان (Anti-Cheat) ---
-let taskStartTime = 0;
 let activeTaskId = null;
+let taskStartTime = 0;
 
 // --- البداية ---
 async function init() {
@@ -13,7 +11,7 @@ async function init() {
 
     if (!userId) {
         document.getElementById('loader').style.display = 'none';
-        return alert("يرجى الدخول من البوت");
+        return document.getElementById('landing-page').classList.remove('hidden');
     }
 
     try {
@@ -38,18 +36,33 @@ async function init() {
     } catch (e) { alert("خطأ في الاتصال"); }
 }
 
+// --- التنقل (إصلاح التداخل) ---
 function showScreen(name) {
+    // إخفاء جميع الشاشات أولاً
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    // إظهار الشاشة المطلوبة فقط
     document.getElementById(name + '-screen').classList.remove('hidden');
+    // التمرير للأعلى
+    window.scrollTo(0, 0);
 }
 
 function showTab(name) {
     showScreen(name);
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     
-    if(name === 'home') { loadTasks(); document.querySelector('.nav-item:nth-child(1)').classList.add('active'); }
-    else if(name === 'invite') loadRefLink();
-    else if(name === 'wallet') { loadWallet(); document.querySelector('.nav-item:nth-child(3)').classList.add('active'); }
+    // تفعيل الأيقونة وتحديث البيانات
+    if(name === 'home') { 
+        loadTasks(); 
+        document.querySelector('.nav-item:nth-child(1)').classList.add('active'); 
+    }
+    else if(name === 'invite') {
+        loadRefLink(); // <--- هنا التعديل
+        document.querySelector('.nav-item:nth-child(2)').classList.add('active');
+    }
+    else if(name === 'wallet') { 
+        loadWallet(); 
+        document.querySelector('.nav-item:nth-child(3)').classList.add('active'); 
+    }
     else if(name === 'history') loadHistory();
     else if(name === 'leaderboard') loadLeaderboard();
 }
@@ -68,7 +81,31 @@ function showToast(msg, isError=false) {
     setTimeout(() => t.classList.add('hidden'), 3000);
 }
 
-// 1. التسجيل
+// --- إصلاح مشكلة رابط الإحالة ---
+async function loadRefLink() {
+    // 1. عرض الرابط فوراً (بدون انتظار السيرفر)
+    // استبدل YacineAS_Bot باسم بوتك الحقيقي إذا كان مختلفاً
+    const botUsername = "YacineAS_Bot"; 
+    const link = `https://t.me/${botUsername}?start=${userId}`;
+    
+    const linkBox = document.getElementById('my-ref-link');
+    linkBox.innerText = link;
+    linkBox.style.color = "#fbbf24"; // لون ذهبي
+
+    // 2. جلب عدد الفريق من السيرفر
+    try {
+        const res = await fetch(`/api/referrals/${userId}`);
+        const data = await res.json();
+        document.getElementById('ref-count').innerText = data.count || 0;
+    } catch(e) { console.log(e); }
+}
+
+function copyRefLink() {
+    const text = document.getElementById('my-ref-link').innerText;
+    navigator.clipboard.writeText(text).then(() => showToast("تم النسخ ✅"));
+}
+
+// --- باقي الوظائف (كما هي) ---
 async function register() {
     const data = {
         userId,
@@ -80,14 +117,12 @@ async function register() {
         pass: document.getElementById('r-pass').value
     };
     if(!data.account || !data.pass) return showToast("أكمل البيانات", true);
-    
     const res = await fetch('/api/register', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
     const json = await res.json();
     if(json.success) { showToast("تم الحفظ"); location.reload(); }
     else showToast(json.error, true);
 }
 
-// 2. المهام
 async function loadTasks() {
     const res = await fetch('/api/tasks');
     const tasks = await res.json();
@@ -104,11 +139,9 @@ function startTask(id, url, sec) {
     tg.openLink(url);
     activeTaskId = id;
     taskStartTime = Date.now();
-    
     const btn = event.target;
     const oldText = btn.innerText;
     btn.disabled = true;
-    
     let timeLeft = sec;
     const timer = setInterval(() => {
         btn.innerText = `⏳ ${timeLeft}`;
@@ -126,11 +159,9 @@ async function completeTask(id, btn, oldText, requiredSec) {
         activeTaskId = null; btn.disabled = false; btn.innerText = oldText;
         return showToast("انتظر الوقت كاملاً", true);
     }
-
     const res = await fetch('/api/claim', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({userId, taskId:id}) });
     const json = await res.json();
     activeTaskId = null;
-    
     if(json.success) { 
         showToast(json.msg); 
         let bal = parseFloat(document.getElementById('balance').innerText);
@@ -142,7 +173,6 @@ async function completeTask(id, btn, oldText, requiredSec) {
     }
 }
 
-// 3. العمليات
 async function transfer() {
     const data = {
         senderId: userId,
@@ -162,7 +192,6 @@ async function redeem() {
     if(json.success) { showToast(json.msg); setTimeout(() => location.reload(), 1500); } else showToast(json.error, true);
 }
 
-// 🔥 إضافة جديدة: المكافأة اليومية 🔥
 async function claimDaily() {
     const res = await fetch('/api/daily', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({userId}) });
     const json = await res.json();
@@ -177,7 +206,6 @@ async function withdraw() {
     if(json.success) { showToast(json.msg); setTimeout(() => location.reload(), 1500); } else showToast(json.error, true);
 }
 
-// 4. البيانات
 async function loadWallet() {
     const res = await fetch(`/api/user/${userId}`);
     const user = await res.json();
@@ -199,28 +227,9 @@ async function loadHistory() {
 async function loadLeaderboard() {
     const res = await fetch('/api/leaderboard');
     const users = await res.json();
-    document.querySelector('#lb-table tbody').innerHTML = users.map((u, i) => `<tr><td>${i+1}</td><td>${u.fullName}</td><td>${u.level}</td><td class="gold">${u.totalEarned.toFixed(1)}</td></tr>`).join('');
+    document.querySelector('#lb-table tbody').innerHTML = users.map((u, i) => `<tr><td>${i+1}</td><td>${u.name}</td><td>${u.level}</td><td class="gold">${u.totalEarned.toFixed(1)}</td></tr>`).join('');
 }
 
-// رابط الإحالة
-async function loadRefLink() {
-    const res = await fetch(`/api/referrals/${userId}`);
-    const data = await res.json();
-    document.getElementById('ref-count').innerText = data.count;
-    document.getElementById('my-ref-link').innerText = `https://t.me/YacineAS_Bot?start=${userId}`;
-}
-
-function copyRefLink() {
-    const text = document.getElementById('my-ref-link').innerText;
-    navigator.clipboard.writeText(text);
-    showToast("تم النسخ!");
-}
-
-function openSupport() {
-    tg.openTelegramLink('https://t.me/+Cb5M_sW2bZFmYjhk');
-}
-
-// حذف الحساب
 async function deleteAccount() {
     const pass = document.getElementById('del-pass').value;
     if (!pass) return showToast("أدخل كلمة المرور", true);
@@ -230,5 +239,7 @@ async function deleteAccount() {
         if(json.success) { alert("تم الحذف"); tg.close(); } else showToast(json.error, true);
     }
 }
+
+function openSupport() { tg.openTelegramLink('https://t.me/+Cb5M_sW2bZFmYjhk'); }
 
 init();
