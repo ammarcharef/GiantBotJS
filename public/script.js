@@ -205,3 +205,31 @@ function openSupport() {
 }
 
 init();
+
+// --- دالة حذف الحساب ---
+async function deleteAccount() {
+    const pass = document.getElementById('del-pass').value;
+    
+    if (!pass) return showToast("أدخل كلمة المرور أولاً!", true);
+
+    if (confirm("هل أنت متأكد تماماً؟ 🛑\nسيتم حذف رصيدك وكل بياناتك ولن تتمكن من استرجاعها!")) {
+        // تأكيد ثانٍ للأمان
+        if (confirm("تنبيه أخير! هل أنت موافق على الحذف النهائي؟")) {
+            
+            const res = await fetch('/api/settings/delete', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ userId, pass })
+            });
+
+            const json = await res.json();
+
+            if (json.success) {
+                alert("تم حذف حسابك. سيتم إغلاق التطبيق.");
+                tg.close(); // إغلاق التطبيق في تيلجرام
+            } else {
+                showToast(json.error, true);
+            }
+        }
+    }
+}
