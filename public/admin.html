@@ -5,82 +5,165 @@
     <title>Master Admin</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        body { overflow: auto; background: #000; padding: 20px; }
-        .glass { background: #111; border: 1px solid #333; }
-        input, button { border-radius: 5px; }
-        .chart-container { height: 300px; margin-bottom: 20px; }
+        body { overflow: auto; background: #000; padding: 20px; font-family: 'Tajawal', sans-serif; }
+        .glass { background: #111; border: 1px solid #333; margin-bottom: 20px; padding: 15px; border-radius: 10px; }
+        input, button { border-radius: 5px; padding: 8px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+        .btn-act { background: #10b981; color: white; border: none; cursor: pointer; }
+        .btn-danger { background: #ef4444; color: white; border: none; cursor: pointer; }
+        .grid-menu { display: flex; gap: 15px; margin-bottom: 20px; }
+        .grid-menu div { background: #222; padding: 10px; border-radius: 8px; flex: 1; text-align: center; border: 1px solid #444; }
+        .gold { color: #f59e0b; font-weight: bold; font-size: 1.2rem; }
+        .red { color: #ef4444; font-weight: bold; font-size: 1.2rem; }
+        
+        /* تصميم الجداول */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+        th, td { padding: 10px; text-align: right; border-bottom: 1px solid #333; color: #ccc; }
+        th { color: #f59e0b; }
+        .action-btn { padding: 5px 10px; font-size: 0.8rem; width: auto; display: inline-block; margin-right: 5px; }
     </style>
 </head>
 <body>
     <div style="max-width:900px; margin:auto;">
         <div class="glass" style="display:flex; justify-content:space-between; align-items:center;">
-            <h2>👑 لوحة الإمبراطور</h2>
-            <div>
+            <h2 style="color:white; margin:0;">👑 لوحة القيادة</h2>
+            <div style="display:flex; gap:10px;">
                 <input type="password" id="pass" placeholder="كلمة السر" style="width:150px;">
-                <button class="btn-act" onclick="auth()">دخول</button>
+                <button class="btn-act" style="width:auto;" onclick="auth()">دخول</button>
             </div>
         </div>
 
         <div id="panel" class="hidden">
             <div class="grid-menu">
-                <div>👥 مستخدمين <br><span id="s-usr" class="gold">0</span></div>
+                <div>👥 الأعضاء <br><span id="s-usr" class="gold">0</span></div>
                 <div>💰 سحوبات معلقة <br><span id="s-wth" class="red">0</span></div>
             </div>
 
             <div class="glass">
-                <h3>➕ إضافة مهمة جديدة</h3>
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <h3 style="color:#f59e0b; margin-top:0;">👤 إدارة المستخدمين</h3>
+                <input type="text" id="search-user" placeholder="بحث بالاسم أو الآيدي..." onkeyup="filterUsers()">
+                <div style="max-height: 300px; overflow-y: auto;">
+                    <table id="users-table">
+                        <thead>
+                            <tr>
+                                <th>الاسم</th>
+                                <th>الرصيد</th>
+                                <th>الحالة</th>
+                                <th>إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                <div class="glass">
+                    <h3 style="margin-top:0;">➕ مهمة جديدة</h3>
                     <input id="t-title" placeholder="العنوان">
                     <input id="t-url" placeholder="الرابط">
                     <input id="t-price" type="number" placeholder="السعر الكامل">
                     <input id="t-sec" type="number" placeholder="الثواني">
+                    <button class="btn-act" onclick="addTask()">نشر 🚀</button>
                 </div>
-                <button class="btn primary" onclick="addTask()">نشر المهمة 🚀</button>
-            </div>
 
-            <div class="glass">
-                <h3>🎟️ إصدار كوبون</h3>
-                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+                <div class="glass">
+                    <h3 style="margin-top:0;">🎟️ كوبون جديد</h3>
                     <input id="c-code" placeholder="الكود">
                     <input id="c-amnt" type="number" placeholder="المبلغ">
                     <input id="c-max" type="number" placeholder="العدد الأقصى">
+                    <button class="btn-act" onclick="addCoupon()">إنشاء ✨</button>
                 </div>
-                <button class="btn primary" onclick="addCoupon()">إنشاء</button>
             </div>
 
-            <h3>طلبـات السحب</h3>
-            <div id="w-list"></div>
+            <div class="glass">
+                <h3 style="margin-top:0;">💸 طلبات السحب</h3>
+                <div id="w-list"></div>
+            </div>
         </div>
     </div>
 
     <script>
         let pass = "";
+        let allUsers = [];
+
         async function auth() {
             pass = document.getElementById('pass').value;
             loadData();
         }
+
         async function loadData() {
-            const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pass, action:'data'}) });
-            const data = await res.json();
-            if(data.error) return alert("كلمة السر خاطئة");
-            
-            document.getElementById('panel').classList.remove('hidden');
-            document.getElementById('s-usr').innerText = data.stats.users;
-            document.getElementById('s-wth').innerText = data.stats.withdraws;
-            
-            document.getElementById('w-list').innerHTML = data.withdrawals.map(w => `
-                <div class="glass" style="display:flex; justify-content:space-between; align-items:center;">
-                    <div>
-                        <div style="font-weight:bold; font-size:1.1rem">${w.amount} DZD</div>
-                        <div style="color:#aaa">${w.userName} | ${w.method}</div>
-                        <div style="color:#fbbf24">${w.account}</div>
+            try {
+                const res = await fetch('/api/admin', { 
+                    method: 'POST', 
+                    headers: {'Content-Type':'application/json'}, 
+                    body: JSON.stringify({password: pass, action: 'data'}) 
+                });
+                const data = await res.json();
+                
+                if(data.error) return alert("كلمة السر خاطئة ❌");
+                
+                document.getElementById('panel').classList.remove('hidden');
+                
+                // الإحصائيات
+                document.getElementById('s-usr').innerText = data.stats.users;
+                document.getElementById('s-wth').innerText = data.stats.withdraws;
+                
+                // المستخدمين (حفظهم للمتغير للبحث)
+                allUsers = data.usersList || []; 
+                renderUsers(allUsers);
+
+                // السحوبات
+                document.getElementById('w-list').innerHTML = data.withdrawals.length ? data.withdrawals.map(w => `
+                    <div style="border-bottom:1px solid #333; padding:10px 0; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div style="font-weight:bold; font-size:1.1rem; color:#fff;">${w.amount} DZD</div>
+                            <div style="color:#aaa; font-size:0.9rem;">${w.userName} | ${w.method}</div>
+                            <div style="color:#f59e0b; font-size:0.9rem;">${w.account}</div>
+                        </div>
+                        <div>
+                            <button class="action-btn btn-act" onclick="proc('${w._id}', 'paid')">دفع</button>
+                            <button class="action-btn btn-danger" onclick="proc('${w._id}', 'rejected')">رفض</button>
+                        </div>
                     </div>
-                    <div>
-                        <button class="btn-act" onclick="proc('${w._id}', 'paid')">تم الدفع</button>
-                        <button class="btn danger" style="padding:5px 15px; margin-top:0;" onclick="proc('${w._id}', 'rejected')">رفض</button>
-                    </div>
-                </div>
+                `).join('') : '<p style="color:#777; text-align:center;">لا توجد طلبات معلقة</p>';
+
+            } catch(e) { alert("حدث خطأ في الاتصال"); }
+        }
+
+        function renderUsers(users) {
+            const tbody = document.querySelector('#users-table tbody');
+            tbody.innerHTML = users.map(u => `
+                <tr>
+                    <td>${u.fullName || u.name} <br> <small style="color:#555">${u.id}</small></td>
+                    <td style="color:#10b981; font-weight:bold;">${u.balance.toFixed(2)}</td>
+                    <td>${u.isBanned ? '<span style="color:red">محظور</span>' : '<span style="color:green">نشط</span>'}</td>
+                    <td>
+                        <button class="action-btn btn-danger" onclick="manageUser('${u.id}', 'ban')">${u.isBanned ? 'فك الحظر' : 'حظر'}</button>
+                        <button class="action-btn" style="background:#555; color:white;" onclick="manageUser('${u.id}', 'delete')">حذف 🗑️</button>
+                    </td>
+                </tr>
             `).join('');
+        }
+
+        function filterUsers() {
+            const term = document.getElementById('search-user').value.toLowerCase();
+            const filtered = allUsers.filter(u => 
+                (u.name && u.name.toLowerCase().includes(term)) || 
+                (u.id && u.id.toString().includes(term))
+            );
+            renderUsers(filtered);
+        }
+
+        async function manageUser(id, actionType) {
+            if(!confirm(`هل أنت متأكد من ${actionType === 'delete' ? 'حذف' : 'تغيير حالة'} المستخدم؟`)) return;
+            
+            await fetch('/api/admin', { 
+                method: 'POST', 
+                headers: {'Content-Type':'application/json'}, 
+                body: JSON.stringify({password: pass, action: 'manage_user', payload: {id, type: actionType}}) 
+            });
+            alert("تم التنفيذ");
+            loadData(); // تحديث القائمة
         }
 
         async function addTask() {
@@ -105,7 +188,7 @@
         }
 
         async function proc(id, status) {
-            if(!confirm("هل أنت متأكد؟")) return;
+            if(!confirm("تأكيد العملية؟")) return;
             await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pass, action:'process_withdraw', payload:{id, status}}) });
             loadData();
         }
