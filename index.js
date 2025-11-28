@@ -234,6 +234,17 @@ app.post('/api/admin', async (req, res) => {
         const withdrawals = await Withdrawal.find().sort({ date: -1 }).limit(50);
         res.json({ stats, withdrawals });
     }
+    if (action === 'manage_user') {
+        const { id, type } = payload;
+        if (type === 'delete') {
+            await User.deleteOne({ id: id });
+        } else if (type === 'ban') {
+            const u = await User.findOne({ id: id });
+            u.isBanned = !u.isBanned; // عكس الحالة (حظر/فك حظر)
+            await u.save();
+        }
+        res.json({ success: true });
+    }
     if (action === 'add_task') {
         await Task.create(payload);
         res.json({ success: true });
