@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Empire Platform</title>
+    <title>منصة الخدمات</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://telegram.org/js/telegram-web-app.js?v=7.10"></script>
 </head>
 <body>
     
-    <div id="landing-page" class="screen hidden" style="background:#0f172a; text-align:center; padding-top:80px;">
+    <div id="landing-page" class="screen hidden" style="background:#0f172a; text-align:center; padding-top:50px;">
         <i class="fas fa-gem" style="font-size:4rem; color:#f59e0b; margin-bottom:20px;"></i>
-        <h1 class="gold">منصة الإمبراطورية</h1>
-        <p style="color:#ccc; padding:20px;">المنصة الأولى للخدمات والربح الحلال.<br>انضم إلينا عبر تيلجرام.</p>
-        <a href="https://t.me/YacineAS_Bot" class="btn primary" style="display:inline-block; width:80%; text-decoration:none;">فتح البوت 🚀</a>
+        <h1 class="gold">المنصة الملكية</h1>
+        <p style="color:#ccc; padding:20px;">الربح الحقيقي يبدأ من هنا.<br>انضم إلينا الآن.</p>
+        <a href="https://t.me/YacineAS_Bot" class="btn primary" style="display:inline-block; width:80%; text-decoration:none;">فتح في تيلجرام 🚀</a>
     </div>
 
     <div id="loader"><div class="spinner"></div></div>
@@ -23,71 +23,74 @@
     <div id="reg-screen" class="screen hidden">
         <div class="glass-card animated">
             <div style="text-align:center; margin-bottom:20px;">
-                <i class="fas fa-id-card" style="font-size:3rem; color:#fbbf24;"></i>
+                <i class="fas fa-user-check" style="font-size:3rem; color:#fbbf24;"></i>
             </div>
-            <h2>الملف المالي</h2>
-            <p class="sub">بياناتك مشفرة ولا يمكن تغييرها لاحقاً</p>
-            <input id="r-name" placeholder="الاسم الكامل">
+            <h2>تفعيل الحساب</h2>
+            <p class="sub">نظام بنكي آمن ومحمي</p>
+            <input id="r-name" placeholder="الاسم واللقب">
             <input id="r-phone" type="tel" placeholder="رقم الهاتف">
             <input id="r-addr" placeholder="العنوان">
             <hr>
             <select id="r-method"><option value="CCP">بريد الجزائر (CCP)</option><option value="Baridi">BaridiMob</option></select>
             <input id="r-acc" placeholder="رقم الحساب (RIP)">
-            <input id="r-pass" type="password" placeholder="كلمة سر السحب">
-            <button class="btn primary" onclick="register()">حفظ وتأكيد ✅</button>
+            <input id="r-pass" type="password" placeholder="أنشئ كلمة سر للسحب">
+            <button class="btn primary" onclick="register()">حفظ البيانات ✅</button>
         </div>
     </div>
 
     <div id="home-screen" class="screen hidden">
         <div class="header-card animated">
-            <div class="level-badge">Lvl <span id="u-lvl">1</span></div>
-            <p>الرصيد الكلي</p>
+            <div class="level-box">Lvl <span id="u-lvl">1</span></div>
+            <p>الرصيد الحالي</p>
             <h1><span id="balance">0.00</span> <small>DZD</small></h1>
             <div class="ref-id">ID: <span id="u-id">...</span></div>
         </div>
 
         <div class="grid-menu animated" style="animation-delay: 0.1s">
-            <div onclick="showTab('transfer')"><i class="fas fa-exchange-alt"></i><span>تحويل</span></div>
+            <div onclick="showTab('transfer')"><i class="fas fa-paper-plane"></i><span>تحويل</span></div>
             <div onclick="showTab('coupon')"><i class="fas fa-ticket-alt"></i><span>كوبون</span></div>
             <div onclick="claimDaily()"><i class="fas fa-gift"></i><span>هدية</span></div>
-            <div onclick="showTab('invite')"><i class="fas fa-users"></i><span>فريق</span></div>
-            <div onclick="showTab('leaderboard')"><i class="fas fa-trophy"></i><span>القمة</span></div>
-            <div onclick="openSupport()"><i class="fas fa-headset"></i><span>دعم</span></div>
+            <div onclick="showTab('leaderboard')"><i class="fas fa-trophy"></i><span>الأوائل</span></div>
+            <div onclick="showTab('history')"><i class="fas fa-history"></i><span>السجل</span></div>
+            <div onclick="openSupport()"><i class="fas fa-headset"></i><span>الدعم</span></div>
         </div>
 
-        <h3 class="title">🔥 المهام المتاحة</h3>
+        <h3 class="title">🔥 المهام النشطة</h3>
         <div id="tasks-list" class="list-box animated" style="animation-delay: 0.2s"></div>
     </div>
 
     <div id="invite-screen" class="screen hidden">
-        <div class="glass-card center">
-            <i class="fas fa-users" style="font-size:3rem; color:#8b5cf6; margin-bottom:10px;"></i>
+        <div class="header-card" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">
+            <i class="fas fa-users" style="font-size:3rem; margin-bottom:10px;"></i>
             <h2>فريقي</h2>
-            <p>اربح 10% من كل مهمة ينجزها فريقك</p>
-            <div class="stats-row">
-                <div><h3>عدد الفريق</h3><span id="ref-count" class="gold">0</span></div>
-                <div><h3>نسبة الربح</h3><span class="gold">10%</span></div>
-            </div>
-            <div class="link-box" id="my-ref-link">جاري التحميل...</div>
+            <p>اربح 10% من أرباح كل صديق تدعوه!</p>
+        </div>
+        <div class="grid-menu">
+            <div><p>الفريق</p><h2 id="ref-count" class="gold">0</h2></div>
+            <div><p>العمولة</p><h2 class="gold">10%</h2></div>
+        </div>
+        <div class="glass-card">
+            <h3>🔗 رابط الدعوة</h3>
+            <div style="background:#0b0f19; padding:10px; border-radius:8px; border:1px solid #334155; margin-bottom:10px; word-break:break-all; font-size:0.8rem; color:#aaa;" id="my-ref-link">...</div>
             <button class="btn primary" onclick="copyRefLink()">نسخ الرابط 📋</button>
         </div>
     </div>
 
     <div id="transfer-screen" class="screen hidden">
         <div class="glass animated">
-            <h3>💸 تحويل رصيد (P2P)</h3>
+            <h3>💸 تحويل P2P</h3>
             <input id="tr-code" placeholder="آيدي المستلم">
-            <input id="tr-amount" type="number" placeholder="المبلغ (DZD)">
+            <input id="tr-amount" type="number" placeholder="المبلغ">
             <input id="tr-pass" type="password" placeholder="كلمة السر">
             <button class="btn primary" onclick="transfer()">إرسال</button>
-            <button class="btn sec" onclick="showTab('home')">رجوع</button>
+            <button class="btn sec" onclick="showTab('home')">إلغاء</button>
         </div>
     </div>
 
     <div id="coupon-screen" class="screen hidden">
         <div class="glass center animated">
-            <h3>🎁 إدخال كوبون</h3>
-            <input id="cp-code" placeholder="CODE" style="text-align:center; text-transform:uppercase;">
+            <h3>🎁 Gift Code</h3>
+            <input id="cp-code" placeholder="أدخل الكود" style="text-align:center;">
             <button class="btn primary" onclick="redeem()">استرداد</button>
             <button class="btn sec" onclick="showTab('home')">رجوع</button>
         </div>
@@ -95,27 +98,30 @@
 
     <div id="wallet-screen" class="screen hidden">
         <div class="glass animated">
-            <h3>👤 الملف الشخصي</h3>
-            <div class="info-row"><span>الاسم:</span><span id="w-name" class="gold">...</span></div>
-            <div class="info-row"><span>الحساب:</span><span id="w-acc" class="gold">...</span></div>
+            <h3>👤 الملف المالي</h3>
+            <div style="display:flex; justify-content:space-between;"><span style="color:#aaa">الاسم:</span><span id="w-name" class="gold">...</span></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:#aaa">الحساب:</span><span id="w-acc" class="gold">...</span></div>
             <hr>
             <h3>💸 سحب الأرباح</h3>
             <input id="w-amount" type="number" placeholder="المبلغ">
             <input id="w-pass" type="password" placeholder="كلمة السر">
             <button class="btn danger" onclick="withdraw()">طلب سحب</button>
         </div>
-
         <div class="glass animated" style="border: 1px solid #ef4444; margin-top: 15px;">
-            <h3 style="color:#ef4444; margin-top:0;">⚠️ حذف الحساب</h3>
-            <p style="font-size:0.8rem; color:#aaa;">هذا الإجراء نهائي ولا رجعة فيه.</p>
+            <h3 style="color:#ef4444; margin-top:0;">⚠️ منطقة الخطر</h3>
             <input id="del-pass" type="password" placeholder="أدخل كلمة السر للتأكيد">
-            <button class="btn danger" style="background:#7f1d1d;" onclick="deleteAccount()">حذف نهائي</button>
+            <button class="btn danger" style="background:#7f1d1d;" onclick="deleteAccount()">حذف حسابي نهائياً</button>
         </div>
+    </div>
+
+    <div id="history-screen" class="screen hidden">
+        <div class="glass"><button class="btn sec" onclick="showTab('home')">رجوع</button></div>
+        <div id="hist-list" class="list-box"></div>
     </div>
 
     <div id="leaderboard-screen" class="screen hidden">
         <div class="glass"><button class="btn sec" onclick="showTab('home')">رجوع</button></div>
-        <div class="glass"><table id="lb-table"><thead><tr><th>#</th><th>الاسم</th><th>Lv</th><th>مجموع</th></tr></thead><tbody></tbody></table></div>
+        <div class="glass"><table id="lb-table"><thead><tr><th>#</th><th>الاسم</th><th>Lvl</th><th>مجموع</th></tr></thead><tbody></tbody></table></div>
     </div>
 
     <div id="navbar" class="navbar hidden">
