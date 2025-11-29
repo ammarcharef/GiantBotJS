@@ -316,6 +316,66 @@ app.post('/api/admin', async (req, res) => {
     }
 });
 
+// --- نظام الشركات الخارجية (CPA Postback) ---
+
+// سعر صرف الدولار مقابل الدينار (لأن الشركات تدفع بالدولار)
+const USD_TO_DZD = 200; 
+
+// هذا الرابط تعطيه لشركة الإعلانات في خانة Postback URL
+// الرابط سيكون: https://YOUR-APP.onrender.com/api/postback?uid={subid}&amt={payout}&secret=MY_SECRET_KEY
+app.get('/api/postback', async (req, res) => {
+    // نستقبل البيانات من الشركة
+    const { uid, amt, secret, ip } = req.query;
+
+    // 1. الحماية: التأكد أن الطلب من الشركة وليس من هاكر
+    // يجب أن تضع كلمة سر في إعدادات الشركة وتطابقها هنا
+    if (secret !== "MY_SUPER_SECRET_KEY") {
+        console.log("ماولة اختراق للبوست باك!");
+        return res.status(403).send("Invalid Secret");
+    }
+
+    try {
+        const user = await User.findOne({ id: uid });
+        if (!user) return res.status(404).send("User not found");
+
+        // 2. الحسابات المالية
+        const profitInUSD = parseFloat(amt); // الربح بالدولار من الشركة
+        const profitInDZD = profitInUSD * USD_TO_DZD; // تحويل للدينار
+
+        const userShare = profitInDZD * 0.70; // حصة المستخدم
+        // الـ 30% الباقية تبقى في حسابك في الشركة، لا نحتاج لتسجيلها هنا
+
+        // 3. إضافة الرصيد
+        user.balance += userShare;
+        user.totalEarned += userShare;
+        user.xp += 50; // نقاط خبرة عالية للعروض
+        
+        // ترقية المستوى
+        const newLevel = Math.floor(Math.sqrt(user.xp / 100)) + 1;
+        if (newLevel > user.level) user.level = newLevel;
+
+        await user.save();
+
+        // 4. مكافأة الإحالة (5% من أرباح الشركات)
+        if (user.referrer) {
+            await User.findOneAndUpdate({ id: user.referrer }, { $inc: { balance: profitInDZD * 0.05 } });
+        }
+
+        // 5. التسجيل في السجل
+        await logTrans(user.id, 'cpa_offer', userShare, `إتمام عرض خارجي ($${profitInUSD})`);
+
+        // 6. إشعار المستخدم
+        notifyUser(user.id, `🔥 مبروك! تم احتساب عرض خارجي.\nربحت: ${userShare.toFixed(2)} DZD`);
+
+        console.log(`Postback Success: User ${uid} earned ${userShare} DZD`);
+        res.status(200).send("OK");
+
+    } catch (e) {
+        console.error("Postback Error:", e);
+        res.status(500).send("Error");
+    }
+});
+
 // تشغيل
 app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Empire OS Online on ${PORT}`));
 
