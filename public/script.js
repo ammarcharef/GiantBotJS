@@ -203,3 +203,21 @@ async function deleteAccount() {
 function openSupport() { tg.openTelegramLink('https://t.me/+Cb5M_sW2bZFmYjhk'); }
 
 init();
+
+function openOfferwall(company) {
+    let link = "";
+    
+    // استبدل الروابط أدناه بروابط الـ Direct Link أو Offerwall الخاصة بك من الشركات
+    if (company === 'CPALEAD') {
+        // مثال: رابطك ينتهي بـ &subid=
+        link = `https://www.cpalead.com/dashboard/reports.php?subid=${userId}`; 
+    } else if (company === 'MONETAG') {
+        link = `https://monetag.com/?u=${userId}`;
+    }
+
+    if(link) {
+        tg.openLink(link);
+    } else {
+        alert("هذه الشركة غير متاحة حالياً");
+    }
+}
