@@ -132,7 +132,7 @@ async function completeTask(id, btn, oldText, reqSec) {
 
 // 3. الإحالة
 async function loadRefLink() {
-    const botName = "YacineAS_Bot";
+    const botName = "gain_bot_js_bot";
     document.getElementById('my-ref-link').innerText = `https://t.me/${botName}?start=${userId}`;
     const res = await fetch(`/api/referrals/${userId}`);
     const data = await res.json();
