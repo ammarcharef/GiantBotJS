@@ -8,53 +8,57 @@ const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 
-// --- إعدادات الإمبراطورية ---
+// --- إعدادات البيئة ---
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const MONGO_URL = process.env.MONGO_URL;
-const ADMIN_PASS = process.env.ADMIN_PASSWORD || "admin123";
+const ADMIN_PASS = process.env.ADMIN_PASSWORD || "admin2025";
 const PORT = process.env.PORT || 3000;
 const APP_URL = process.env.RENDER_EXTERNAL_URL;
 
-mongoose.connect(MONGO_URL).then(() => console.log('✅ Empire Database Connected'));
+// --- قاعدة البيانات ---
+mongoose.connect(MONGO_URL)
+    .then(() => console.log('✅ Empire DB Connected'))
+    .catch(err => console.error('❌ DB Error:', err));
 
-// --- المخططات البيانية (Database Schemas) ---
+// --- الجداول (Schema) ---
 const UserSchema = new mongoose.Schema({
     id: { type: Number, unique: true },
-    name: String, refCode: String, referrer: Number,
+    name: String,
+    refCode: String,
+    referrer: Number,
     // الملف الشخصي
     fullName: String, phone: String, address: String,
     paymentMethod: String, paymentAccount: String, paymentPassword: String,
     paymentLocked: { type: Boolean, default: false },
     // المحفظة
-    balance: { type: Number, default: 0.00 }, // للسحب
-    adBalance: { type: Number, default: 0.00 }, // للإعلانات (لا يسحب)
+    balance: { type: Number, default: 0.00 },
     totalEarned: { type: Number, default: 0.00 },
-    // المستويات
     xp: { type: Number, default: 0 },
     level: { type: Number, default: 1 },
-    // الأمان والإدارة
+    lastDaily: { type: Date, default: null },
+    // الأمان
     redeemedCoupons: [String],
     isBanned: { type: Boolean, default: false },
-    banReason: String,
-    lastActive: { type: Date, default: Date.now },
     joinedAt: { type: Date, default: Date.now }
 });
 const User = mongoose.model('User', UserSchema);
 
 const TaskSchema = new mongoose.Schema({
-    title: String, url: String, 
-    price: Number, // تكلفة المعلن
-    reward: Number, // ربح المستخدم
-    seconds: Number, 
-    totalClicks: { type: Number, default: 0 },
-    maxClicks: Number, // حد أقصى للنقرات
+    title: String, url: String, fullPrice: Number, seconds: Number,
     active: { type: Boolean, default: true }
 });
 const Task = mongoose.model('Task', TaskSchema);
 
+const TransactionSchema = new mongoose.Schema({
+    userId: Number, type: String, amount: Number, details: String,
+    date: { type: Date, default: Date.now }
+});
+const Transaction = mongoose.model('Transaction', TransactionSchema);
+
 const WithdrawalSchema = new mongoose.Schema({
     userId: Number, userName: String, amount: Number, method: String, account: String,
-    status: { type: String, default: 'pending' }, date: { type: Date, default: Date.now }
+    status: { type: String, default: 'pending' },
+    date: { type: Date, default: Date.now }
 });
 const Withdrawal = mongoose.model('Withdrawal', WithdrawalSchema);
 
@@ -70,58 +74,69 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(rateLimit({ windowMs: 15*60*1000, max: 500 })); // حماية ضد الهجمات
+// حماية: 300 طلب كل 15 دقيقة
+app.use(rateLimit({ windowMs: 15*60*1000, max: 300 }));
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-// --- Helper Functions ---
+// --- البوت ---
+const bot = new Telegraf(BOT_TOKEN);
+
+async function logTrans(userId, type, amount, details) {
+    await Transaction.create({ userId, type, amount, details });
+}
+
 async function notifyUser(userId, msg) {
     try { await bot.telegram.sendMessage(userId, msg); } catch (e) {}
 }
 
-// --- APIs العملاقة ---
+// --- APIs ---
 
-// 1. جلب بيانات المستخدم الشاملة
+// 1. جلب البيانات
 app.get('/api/user/:id', async (req, res) => {
     let user = await User.findOne({ id: req.params.id });
     if (!user) return res.json({ notFound: true });
     
-    // تحديث النشاط والمستوى
-    user.lastActive = Date.now();
+    // تحديث المستوى تلقائياً
     const newLevel = Math.floor(Math.sqrt(user.xp / 100)) + 1;
-    if (newLevel > user.level) user.level = newLevel;
-    await user.save();
-    
+    if (newLevel > user.level) {
+        user.level = newLevel;
+        await user.save();
+    }
     res.json(user);
 });
 
-// 2. التسجيل والتوثيق
+// 2. التسجيل
 app.post('/api/register', async (req, res) => {
     const { userId, fullName, phone, address, method, account, pass } = req.body;
     let user = await User.findOne({ id: userId });
     
+    // إنشاء تلقائي إذا لم يوجد
     if (!user) user = await User.create({ id: userId, name: fullName, refCode: userId });
-    if (user.paymentLocked) return res.json({ error: "البيانات محفوظة مسبقاً ولا يمكن تعديلها" });
+    
+    if (user.paymentLocked) return res.json({ error: "البيانات محفوظة مسبقاً" });
 
     user.fullName = fullName; user.phone = phone; user.address = address;
     user.paymentMethod = method; user.paymentAccount = account; user.paymentPassword = pass;
     user.paymentLocked = true;
     
     await user.save();
-    
+
+    // إشعار المحيل
     if (user.referrer) {
-        await notifyUser(user.referrer, `🎉 عضو جديد في فريقك: ${fullName}\nستربح 10% من عمله.`);
+        notifyUser(user.referrer, `🎉 عضو جديد في فريقك: ${fullName}\nستربح 10% من عمله.`);
     }
+
     res.json({ success: true });
 });
 
-// 3. نظام المهام الذكي
+// 3. المهام
 app.get('/api/tasks', async (req, res) => {
-    // جلب المهام التي لم تصل للحد الأقصى
     const tasks = await Task.find({ active: true }).sort({ _id: -1 });
-    // تصفية المهام المنتهية
-    const validTasks = tasks.filter(t => !t.maxClicks || t.totalClicks < t.maxClicks);
-    res.json(validTasks);
+    res.json(tasks.map(t => ({
+        id: t._id, title: t.title, url: t.url, seconds: t.seconds,
+        reward: (t.fullPrice * 0.70).toFixed(2)
+    })));
 });
 
 app.post('/api/claim', async (req, res) => {
@@ -129,34 +144,31 @@ app.post('/api/claim', async (req, res) => {
     const task = await Task.findById(taskId);
     const user = await User.findOne({ id: userId });
 
-    if (!task || !user || user.isBanned) return res.json({ error: "عملية مرفوضة" });
-    if (task.maxClicks && task.totalClicks >= task.maxClicks) return res.json({ error: "انتهت المهمة" });
+    if (!task || !user || user.isBanned) return res.json({ error: "خطأ في العملية" });
 
-    // زيادة الرصيد
-    const reward = task.reward;
+    const reward = task.fullPrice * 0.70;
+    
     await User.findOneAndUpdate({ id: userId }, { 
-        $inc: { balance: reward, totalEarned: reward, xp: 15 } 
+        $inc: { balance: reward, totalEarned: reward, xp: 20 } 
     });
     
-    // تحديث المهمة
-    await Task.findByIdAndUpdate(taskId, { $inc: { totalClicks: 1 } });
-
-    // عمولة الإحالة (10%)
+    // عمولة الإحالة
     if (user.referrer) {
-        await User.findOneAndUpdate({ id: user.referrer }, { $inc: { balance: reward * 0.10 } });
+        await User.findOneAndUpdate({ id: user.referrer }, { $inc: { balance: task.fullPrice * 0.10 } });
     }
 
-    res.json({ success: true, msg: "تمت إضافة الأجر" });
+    await logTrans(userId, 'task', reward, `إنجاز: ${task.title}`);
+    res.json({ success: true, msg: "تم احتساب الأجر" });
 });
 
-// 4. نظام التحويل المالي (P2P)
+// 4. التحويل P2P
 app.post('/api/transfer', async (req, res) => {
     const { senderId, receiverRef, amount, pass } = req.body;
     const val = parseFloat(amount);
     const sender = await User.findOne({ id: senderId });
 
     if (!sender || sender.paymentPassword !== pass) return res.json({ error: "كلمة المرور خاطئة" });
-    if (sender.balance < val || val < 50) return res.json({ error: "الرصيد غير كافٍ" });
+    if (sender.balance < val || val < 10) return res.json({ error: "الرصيد غير كافٍ" });
 
     const receiver = await User.findOne({ refCode: receiverRef });
     if (!receiver) return res.json({ error: "المستلم غير موجود" });
@@ -166,18 +178,22 @@ app.post('/api/transfer', async (req, res) => {
     await sender.save();
     await receiver.save();
 
-    await notifyUser(receiver.id, `💸 وصلك ${val} DZD من ${sender.fullName}`);
+    await logTrans(sender.id, 'transfer_out', -val, `إرسال إلى ${receiver.name}`);
+    await logTrans(receiver.id, 'transfer_in', val, `استلام من ${sender.name}`);
+    
+    notifyUser(receiver.id, `💸 وصلك ${val} DZD من ${sender.fullName}`);
+
     res.json({ success: true, msg: "تم التحويل بنجاح" });
 });
 
-// 5. نظام الكوبونات
+// 5. الكوبون
 app.post('/api/redeem', async (req, res) => {
     const { userId, code } = req.body;
     const coupon = await Coupon.findOne({ code });
     const user = await User.findOne({ id: userId });
 
     if (!coupon || coupon.used >= coupon.maxUses) return res.json({ error: "الكود منتهي" });
-    if (user.redeemedCoupons.includes(code)) return res.json({ error: "تم استخدامه مسبقاً" });
+    if (user.redeemedCoupons.includes(code)) return res.json({ error: "مستخدم سابقاً" });
 
     user.balance += coupon.amount;
     user.redeemedCoupons.push(code);
@@ -185,30 +201,37 @@ app.post('/api/redeem', async (req, res) => {
     
     await user.save();
     await coupon.save();
-    res.json({ success: true, msg: `مبروك! +${coupon.amount} DZD` });
+    await logTrans(userId, 'gift', coupon.amount, `كوبون: ${code}`);
+
+    res.json({ success: true, msg: `+${coupon.amount} DZD هدية` });
 });
 
 // 6. المكافأة اليومية
 app.post('/api/daily', async (req, res) => {
-    const user = await User.findOne({ id: req.body.userId });
+    const { userId } = req.body;
+    const user = await User.findOne({ id: userId });
     const now = new Date();
-    if (user.lastDaily && (now - new Date(user.lastDaily)) < 86400000) return res.json({ error: "عد غداً" });
-    
+
+    if (user.lastDaily && (now - new Date(user.lastDaily)) < 86400000) {
+        return res.json({ error: "عد غداً لاستلام الهدية" });
+    }
+
     user.balance += 5.00;
     user.lastDaily = now;
     await user.save();
-    res.json({ success: true, msg: "هدية يومية: 5 DZD" });
+    await logTrans(userId, 'daily', 5.00, "هدية يومية");
+    
+    res.json({ success: true, msg: "حصلت على 5 DZD" });
 });
 
-// 7. نظام السحب الصارم
+// 7. السحب
 app.post('/api/withdraw', async (req, res) => {
     const { userId, amount, pass } = req.body;
     const val = parseFloat(amount);
     const user = await User.findOne({ id: userId });
 
     if (user.paymentPassword !== pass) return res.json({ error: "كلمة المرور خاطئة" });
-    if (val < 500) return res.json({ error: "الحد الأدنى 500 DZD" });
-    if (user.balance < val) return res.json({ error: "الرصيد غير كافٍ" });
+    if (user.balance < val || val < 500) return res.json({ error: "الرصيد غير كافٍ" });
 
     user.balance -= val;
     await user.save();
@@ -218,22 +241,26 @@ app.post('/api/withdraw', async (req, res) => {
         method: user.paymentMethod, account: user.paymentAccount 
     });
     
+    await logTrans(userId, 'withdraw', -val, 'طلب سحب قيد الانتظار');
     res.json({ success: true, msg: "تم إرسال الطلب للمراجعة" });
 });
 
-// 8. إحصائيات الإحالة
+// 8. البيانات
 app.get('/api/referrals/:id', async (req, res) => {
     const count = await User.countDocuments({ referrer: req.params.id });
     res.json({ count });
 });
 
-// 9. المتصدرين
+app.get('/api/history/:id', async (req, res) => {
+    const data = await Transaction.find({ userId: req.params.id }).sort({ date: -1 }).limit(20);
+    res.json(data);
+});
+
 app.get('/api/leaderboard', async (req, res) => {
     const users = await User.find({ isBanned: false }).sort({ totalEarned: -1 }).limit(10).select('fullName totalEarned level');
     res.json(users);
 });
 
-// 10. حذف الحساب
 app.post('/api/settings/delete', async (req, res) => {
     const { userId, pass } = req.body;
     const user = await User.findOne({ id: userId });
@@ -242,35 +269,24 @@ app.post('/api/settings/delete', async (req, res) => {
     res.json({ success: true });
 });
 
-// --- لوحة التحكم (Admin Dashboard) ---
+// 9. لوحة الأدمن
 app.post('/api/admin', async (req, res) => {
     const { password, action, payload } = req.body;
     if (password !== ADMIN_PASS) return res.json({ error: "Auth Failed" });
 
     if (action === 'data') {
-        const stats = { 
-            users: await User.countDocuments(), 
-            withdraws: await Withdrawal.countDocuments({ status: 'pending' }),
-            tasks: await Task.countDocuments({ active: true })
-        };
+        const stats = { users: await User.countDocuments(), withdraws: await Withdrawal.countDocuments({ status: 'pending' }) };
         const withdrawals = await Withdrawal.find().sort({ date: -1 }).limit(50);
         const usersList = await User.find().sort({ balance: -1 }).limit(50);
-        const tasksList = await Task.find().sort({ _id: -1 });
-        res.json({ stats, withdrawals, usersList, tasksList });
+        res.json({ stats, withdrawals, usersList });
     }
     
     if (action === 'add_task') {
-        // حساب تلقائي: المستخدم يأخذ 70% من السعر
-        const reward = payload.price * 0.70;
-        await Task.create({ ...payload, reward });
+        const userReward = payload.fullPrice * 0.70;
+        await Task.create({ ...payload, userReward });
         res.json({ success: true });
     }
     
-    if (action === 'delete_task') {
-        await Task.findByIdAndDelete(payload.id);
-        res.json({ success: true });
-    }
-
     if (action === 'add_coupon') {
         await Coupon.create(payload);
         res.json({ success: true });
@@ -281,9 +297,10 @@ app.post('/api/admin', async (req, res) => {
         w.status = payload.status; await w.save();
         if (payload.status === 'rejected') {
             await User.findOneAndUpdate({ id: w.userId }, { $inc: { balance: w.amount } });
-            await notifyUser(w.userId, `❌ تم رفض سحب ${w.amount} DZD وإعادة المبلغ.`);
+            await logTrans(w.userId, 'refund', w.amount, 'سحب مرفوض');
+            notifyUser(w.userId, `❌ تم رفض طلب السحب ${w.amount} DZD.`);
         } else {
-            await notifyUser(w.userId, `✅ تم دفع ${w.amount} DZD بنجاح!`);
+            notifyUser(w.userId, `✅ تم دفع ${w.amount} DZD لحسابك!`);
         }
         res.json({ success: true });
     }
@@ -299,11 +316,10 @@ app.post('/api/admin', async (req, res) => {
     }
 });
 
-// تشغيل السيرفر
-app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Empire OS Active on ${PORT}`));
+// تشغيل
+app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Empire OS Online on ${PORT}`));
 
 // البوت
-const bot = new Telegraf(BOT_TOKEN);
 bot.start(async (ctx) => {
     const user = ctx.from;
     const args = ctx.message.text.split(' ');
@@ -319,11 +335,10 @@ bot.start(async (ctx) => {
     
     const webLink = `${APP_URL}/?uid=${user.id}`;
     ctx.reply(
-        `🏛 **أهلاً بك في المنصة العملاقة** 🇩🇿\n\n` +
-        `👤 **العضو:** ${user.first_name}\n` +
-        `🆔 **كودك:** \`${user.id}\`\n\n` +
-        `💰 اربح المال الحلال عبر المهام والإحالات.\n` +
-        `👇 اضغط للدخول للمنصة:`, 
+        `🏛 **منصة ${user.first_name} للخدمات** 🇩🇿\n\n` +
+        `✅ ربح حلال ومضمون\n` +
+        `🆔 كودك: \`${user.id}\`\n\n` +
+        `👇 اضغط للدخول والبدء:`, 
         Markup.keyboard([[Markup.button.webApp("📱 دخول المنصة", webLink)]]).resize()
     );
 });
