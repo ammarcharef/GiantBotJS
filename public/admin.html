@@ -2,266 +2,113 @@
 <html dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Admin App</title>
-    
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#000000">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2331/2331716.png">
-
+    <title>Admin Dashboard</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* --- الأساسيات --- */
-        body { 
-            background: #000; padding: 15px; font-family: 'Tajawal', sans-serif; 
-            margin: 0; overflow-x: hidden; padding-bottom: 50px;
-        }
-        
-        /* --- التصميم الزجاجي --- */
-        .glass { 
-            background: #111; border: 1px solid #333; margin-bottom: 15px; 
-            padding: 15px; border-radius: 12px; 
-        }
-
-        /* --- العناوين والهيدر --- */
-        .header-bar {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 20px; flex-wrap: wrap; gap: 10px;
-        }
-        h2, h3 { margin: 0; color: #fff; }
-        .gold { color: #f59e0b; }
-        .red { color: #ef4444; }
-
-        /* --- النماذج والأزرار --- */
-        input, button { 
-            border-radius: 8px; padding: 12px; margin: 5px 0; 
-            width: 100%; box-sizing: border-box; font-size: 1rem;
-        }
-        input { background: #222; border: 1px solid #444; color: white; }
-        
-        /* أزرار ملونة */
-        .btn-act { background: #10b981; color: white; border: none; font-weight: bold; }
-        .btn-primary { background: #f59e0b; color: black; border: none; font-weight: bold; }
-        .btn-danger { background: #ef4444; color: white; border: none; font-weight: bold; }
-
-        /* --- شبكة الإحصائيات --- */
-        .grid-stats { 
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; 
-        }
-        .stat-box { 
-            background: #222; padding: 10px; border-radius: 8px; 
-            text-align: center; border: 1px solid #444; 
-        }
-        .stat-box span { font-size: 1.2rem; font-weight: bold; display: block; margin-top: 5px; }
-
-        /* --- شبكة الادخال (للكمبيوتر والهاتف) --- */
-        .grid-form { 
-            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; 
-        }
-
-        /* --- الجدول الذكي (يتحول لبطاقات في الهاتف) --- */
-        .table-container { max-height: 400px; overflow-y: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
-        th { color: #f59e0b; text-align: right; padding: 10px; border-bottom: 1px solid #444; background: #1a1a1a; position: sticky; top: 0; }
-        td { padding: 10px; border-bottom: 1px solid #333; color: #ccc; vertical-align: middle; }
-
-        .action-btn { 
-            padding: 6px 12px; font-size: 0.8rem; width: auto; 
-            display: inline-block; margin-left: 5px; 
-        }
-
-        /* --- 📱 تخصيص الموبايل (Responsive Media Query) --- */
-        @media (max-width: 768px) {
-            /* جعل الإحصائيات عمودين بدل 3 */
-            .grid-stats { grid-template-columns: 1fr 1fr; }
-            
-            /* جعل النماذج عمود واحد (فوق بعض) */
-            .grid-form { grid-template-columns: 1fr; }
-
-            /* تحويل الجدول إلى بطاقات (Cards) */
-            table, thead, tbody, th, td, tr { display: block; }
-            thead tr { position: absolute; top: -9999px; left: -9999px; }
-            
-            tr { 
-                background: #1a1a1a; border: 1px solid #333; 
-                margin-bottom: 10px; border-radius: 10px; padding: 10px;
-            }
-            
-            td { 
-                border: none; position: relative; padding-left: 0; 
-                display: flex; justify-content: space-between; align-items: center;
-                border-bottom: 1px solid #333;
-            }
-            td:last-child { border-bottom: none; flex-direction: column; gap: 5px; align-items: stretch; }
-            
-            /* إضافة عناوين للخانات في وضع الموبايل */
-            td:before { 
-                content: attr(data-label); 
-                font-weight: bold; color: #666; font-size: 0.8rem;
-            }
-        }
+        body { overflow: auto !important; height: auto !important; background: #000; padding: 15px; font-family: 'Tajawal'; }
+        .glass { background: #111; border: 1px solid #333; margin-bottom: 20px; padding: 15px; border-radius: 10px; }
+        input, button { border-radius: 5px; padding: 10px; width: 100%; margin: 5px 0; box-sizing: border-box; }
+        .btn-act { background: #10b981; color: white; border: none; cursor: pointer; }
+        .btn-danger { background: #ef4444; color: white; border: none; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
+        th, td { padding: 10px; text-align: right; border-bottom: 1px solid #333; color: #ccc; }
+        th { color: #f59e0b; }
     </style>
 </head>
 <body>
-
-    <div id="login-screen" style="max-width:400px; margin:50px auto; text-align:center;">
-        <i class="fas fa-user-secret" style="font-size:4rem; color:#f59e0b; margin-bottom:20px;"></i>
-        <h2 style="margin-bottom:20px;">الدخول للنظام</h2>
-        <input type="password" id="pass" placeholder="كلمة المرور السرية">
-        <button class="btn-primary" onclick="auth()">فتح لوحة التحكم 🔓</button>
-    </div>
-
-    <div id="panel" class="hidden" style="max-width:1000px; margin:auto;">
-        
-        <div class="header-bar">
-            <h2>👑 الإمبراطور</h2>
-            <button class="btn-danger" style="width:auto;" onclick="location.reload()">خروج</button>
-        </div>
-
-        <div class="grid-stats">
-            <div class="stat-box">👥 المستخدمين <span id="s-usr" class="gold">0</span></div>
-            <div class="stat-box">💸 سحب معلق <span id="s-wth" class="red">0</span></div>
-            <div class="stat-box">🔗 إحالات <span id="s-refs" class="gold">0</span></div>
-        </div>
-
-        <div class="glass">
-            <h3 class="gold">👤 المستخدمين</h3>
-            <input type="text" id="search-user" placeholder="🔍 بحث..." onkeyup="filterUsers()">
-            <div class="table-container">
-                <table id="users-table">
-                    <thead>
-                        <tr>
-                            <th>المستخدم</th>
-                            <th>الرصيد</th>
-                            <th>الحالة</th>
-                            <th>تحكم</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+    <div style="max-width:800px; margin:auto;">
+        <div class="glass" style="display:flex; justify-content:space-between; align-items:center;">
+            <h2 style="color:white; margin:0;">👑 الإدارة</h2>
+            <div style="display:flex; gap:5px;">
+                <input type="password" id="pass" placeholder="كلمة السر" style="width:120px;">
+                <button class="btn-act" style="width:auto;" onclick="loadData()">دخول</button>
             </div>
         </div>
 
-        <div class="glass">
-            <h3>➕ إضافة مهمة</h3>
-            <input id="t-title" placeholder="العنوان">
-            <input id="t-url" placeholder="الرابط">
-            <div class="grid-form">
-                <input id="t-price" type="number" placeholder="السعر">
-                <input id="t-sec" type="number" placeholder="المدة (ثواني)">
+        <div id="panel" class="hidden">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:20px;">
+                <div class="glass" style="text-align:center;">👥 الأعضاء <br><span id="s-usr" class="gold">0</span></div>
+                <div class="glass" style="text-align:center;">💸 معلق <br><span id="s-wth" class="red">0</span></div>
             </div>
-            <button class="btn-act" onclick="addTask()">نشر المهمة 🚀</button>
-        </div>
 
-        <div class="glass">
-            <h3>🎟️ إنشاء كوبون</h3>
-            <div class="grid-form">
-                <input id="c-code" placeholder="الكود">
-                <input id="c-amnt" type="number" placeholder="المبلغ">
+            <div class="glass">
+                <h3>👤 المستخدمين</h3>
+                <div style="max-height:300px; overflow-y:auto;">
+                    <table id="users-table">
+                        <thead><tr><th>الاسم</th><th>الرصيد</th><th>الحالة</th><th>تحكم</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
             </div>
-            <input id="c-max" type="number" placeholder="عدد المرات">
-            <button class="btn-primary" onclick="addCoupon()">تفعيل الكوبون ✨</button>
-        </div>
 
-        <div class="glass">
-            <h3 class="gold">💸 طلبات السحب</h3>
-            <div id="w-list"></div>
+            <div class="glass">
+                <h3>➕ إضافة مهمة</h3>
+                <input id="t-title" placeholder="العنوان">
+                <input id="t-url" placeholder="الرابط">
+                <div style="display:flex; gap:5px;">
+                    <input id="t-price" type="number" placeholder="السعر">
+                    <input id="t-sec" type="number" placeholder="ثواني">
+                </div>
+                <button class="btn-act" onclick="addTask()">نشر</button>
+                
+                <h4 style="margin-top:15px; border-top:1px solid #333; padding-top:10px;">📋 المهام الحالية</h4>
+                <div id="tasks-list-admin" style="max-height:200px; overflow-y:auto;"></div>
+            </div>
+
+            <div class="glass">
+                <h3>💸 طلبات السحب</h3>
+                <div id="w-list"></div>
+            </div>
         </div>
     </div>
 
     <script>
         let pass = "";
-        let allUsers = [];
-
-        async function auth() {
-            pass = document.getElementById('pass').value;
-            loadData();
-        }
-
         async function loadData() {
-            try {
-                const res = await fetch('/api/admin', { 
-                    method: 'POST', 
-                    headers: {'Content-Type':'application/json'}, 
-                    body: JSON.stringify({password: pass, action: 'data'}) 
-                });
-                const data = await res.json();
-                
-                if(data.error) return alert("❌ كلمة المرور خاطئة");
-                
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('panel').classList.remove('hidden');
-                
-                // تعبئة البيانات
-                document.getElementById('s-usr').innerText = data.stats.users;
-                document.getElementById('s-wth').innerText = data.stats.withdraws;
-                
-                let totalRefs = 0;
-                data.usersList.forEach(u => { if(u.referrer) totalRefs++; });
-                document.getElementById('s-refs').innerText = totalRefs;
+            pass = document.getElementById('pass').value;
+            const res = await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pass, action:'data'}) });
+            const data = await res.json();
+            if(data.error) return alert("خطأ");
+            document.getElementById('panel').classList.remove('hidden');
+            
+            document.getElementById('s-usr').innerText = data.stats.users;
+            document.getElementById('s-wth').innerText = data.stats.withdraws;
 
-                allUsers = data.usersList || []; 
-                renderUsers(allUsers);
-
-                // السحوبات (تصميم كارد للموبايل)
-                document.getElementById('w-list').innerHTML = data.withdrawals.length ? data.withdrawals.map(w => `
-                    <div style="background:#222; padding:15px; border-radius:10px; margin-bottom:10px; border:1px solid #444;">
-                        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                            <span style="font-weight:bold; font-size:1.1rem; color:#fff;">${w.amount} DZD</span>
-                            <span style="color:#aaa; font-size:0.8rem;">${new Date(w.date).toLocaleDateString()}</span>
-                        </div>
-                        <div style="color:#ccc; margin-bottom:10px;">
-                            👤 ${w.userName} <br>
-                            💳 ${w.method}: <span class="gold">${w.account}</span>
-                        </div>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                            <button class="btn-act" onclick="proc('${w._id}', 'paid')">تم الدفع</button>
-                            <button class="btn-danger" onclick="proc('${w._id}', 'rejected')">رفض</button>
-                        </div>
-                    </div>
-                `).join('') : '<p style="color:#777; text-align:center;">نظيف! لا توجد طلبات.</p>';
-
-            } catch(e) { alert("خطأ اتصال"); }
-        }
-
-        function renderUsers(users) {
-            const tbody = document.querySelector('#users-table tbody');
-            tbody.innerHTML = users.map(u => `
+            // المستخدمين
+            document.querySelector('#users-table tbody').innerHTML = data.usersList.map(u => `
                 <tr>
-                    <td data-label="المستخدم">
-                        <div>
-                            <span style="font-weight:bold; color:white;">${u.fullName || u.name}</span>
-                            <br><small style="color:#666;">${u.id}</small>
-                        </div>
-                    </td>
-                    <td data-label="الرصيد" style="color:#10b981; font-weight:bold;">${u.balance.toFixed(2)}</td>
-                    <td data-label="الحالة">${u.isBanned ? '<span style="color:red">⛔ محظور</span>' : '<span style="color:green">✅ نشط</span>'}</td>
-                    <td data-label="تحكم">
-                        <button class="action-btn btn-danger" style="width:100%" onclick="manageUser('${u.id}', 'ban')">${u.isBanned ? 'فك الحظر' : 'حظر'}</button>
-                        <button class="action-btn" style="width:100%; background:#444; color:white; margin-top:5px;" onclick="manageUser('${u.id}', 'delete')">حذف</button>
+                    <td>${u.fullName}<br><small>${u.id}</small></td>
+                    <td class="gold">${u.balance.toFixed(2)}</td>
+                    <td>${u.isBanned ? '⛔' : '✅'}</td>
+                    <td>
+                        <button class="btn-danger" style="padding:5px;" onclick="manage('${u.id}', 'ban')">${u.isBanned?'فك':'حظر'}</button>
+                        <button style="padding:5px; background:#555; color:white; border:none; border-radius:5px;" onclick="manage('${u.id}', 'delete')">X</button>
                     </td>
                 </tr>
             `).join('');
-        }
 
-        function filterUsers() {
-            const term = document.getElementById('search-user').value.toLowerCase();
-            const filtered = allUsers.filter(u => 
-                (u.name && u.name.toLowerCase().includes(term)) || 
-                (u.id && u.id.toString().includes(term))
-            );
-            renderUsers(filtered);
-        }
+            // المهام الحالية
+            document.getElementById('tasks-list-admin').innerHTML = data.tasksList.map(t => `
+                <div style="border-bottom:1px solid #333; padding:5px; display:flex; justify-content:space-between; align-items:center;">
+                    <div>${t.title} <small class="gold">(${t.totalClicks} نقرة)</small></div>
+                    <button class="btn-danger" style="width:auto; padding:5px 10px;" onclick="delTask('${t._id}')">حذف</button>
+                </div>
+            `).join('');
 
-        async function manageUser(id, type) {
-            if(!confirm("هل أنت متأكد؟")) return;
-            await fetch('/api/admin', { 
-                method: 'POST', headers: {'Content-Type':'application/json'}, 
-                body: JSON.stringify({password: pass, action: 'manage_user', payload: {id, type}}) 
-            });
-            loadData();
+            // السحوبات
+            document.getElementById('w-list').innerHTML = data.withdrawals.map(w => `
+                <div style="border-bottom:1px solid #333; padding:10px 0;">
+                    <div style="display:flex; justify-content:space-between;">
+                        <b>${w.amount} DZD</b>
+                        <span style="color:#aaa">${w.userName}</span>
+                    </div>
+                    <div style="font-size:0.9rem; color:#f59e0b;">${w.method}: ${w.account}</div>
+                    <div style="margin-top:5px; display:flex; gap:10px;">
+                        <button class="btn-act" onclick="proc('${w._id}', 'paid')">تم الدفع</button>
+                        <button class="btn-danger" onclick="proc('${w._id}', 'rejected')">رفض</button>
+                    </div>
+                </div>
+            `).join('');
         }
 
         async function addTask() {
@@ -272,21 +119,23 @@
                 seconds: document.getElementById('t-sec').value
             };
             await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pass, action:'add_task', payload}) });
-            alert("تم النشر ✅");
+            alert("تم"); loadData();
         }
 
-        async function addCoupon() {
-            const payload = {
-                code: document.getElementById('c-code').value,
-                amount: document.getElementById('c-amnt').value,
-                maxUses: document.getElementById('c-max').value
-            };
-            await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pass, action:'add_coupon', payload}) });
-            alert("تم إنشاء الكوبون ✅");
+        async function delTask(id) {
+            if(!confirm("حذف المهمة؟")) return;
+            await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pass, action:'delete_task', payload:{id}}) });
+            loadData();
+        }
+
+        async function manage(id, type) {
+            if(!confirm("تأكيد؟")) return;
+            await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pass, action:'manage_user', payload:{id, type}}) });
+            loadData();
         }
 
         async function proc(id, status) {
-            if(!confirm("تأكيد العملية؟")) return;
+            if(!confirm("تأكيد؟")) return;
             await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pass, action:'process_withdraw', payload:{id, status}}) });
             loadData();
         }
