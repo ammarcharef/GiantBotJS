@@ -16,9 +16,13 @@ async function init() {
     try {
         const res = await fetch(`/api/user/${userId}`);
         const user = await res.json();
+        
         document.getElementById('loader').style.display = 'none';
 
-        if (user.isBanned) return document.body.innerHTML = `<div style="text-align:center; padding:50px; color:#ef4444;"><h2>🚫 حسابك محظور</h2></div>`;
+        if (user.isBanned) {
+            document.body.innerHTML = `<div style="text-align:center; padding:50px; color:#ef4444;"><h2>🚫 حسابك محظور</h2></div>`;
+            return;
+        }
 
         if (user.notFound || !user.paymentLocked) {
             showScreen('reg');
@@ -28,7 +32,7 @@ async function init() {
             document.getElementById('navbar').classList.remove('hidden');
             updateUI(user);
         }
-    } catch (e) { alert("خطأ اتصال"); }
+    } catch (e) { alert("خطأ في الاتصال"); }
 }
 
 function showScreen(name) {
@@ -40,9 +44,11 @@ function showScreen(name) {
 function showTab(name) {
     showScreen(name);
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    
     if(name === 'home') { loadTasks(); document.querySelector('.nav-item:nth-child(1)').classList.add('active'); }
     else if(name === 'invite') { loadRefLink(); document.querySelector('.nav-item:nth-child(2)').classList.add('active'); }
     else if(name === 'wallet') { loadWallet(); document.querySelector('.nav-item:nth-child(3)').classList.add('active'); }
+    else if(name === 'history') loadHistory();
     else if(name === 'leaderboard') loadLeaderboard();
 }
 
@@ -86,7 +92,7 @@ async function loadTasks() {
             <div><h4>${t.title}</h4><span class="gold">+${t.reward.toFixed(2)} DZD</span></div>
             <button class="btn-act" onclick="startTask('${t._id}', '${t.url}', ${t.seconds})">بدء</button>
         </div>
-    `).join('') : '<p style="text-align:center;color:#777">لا توجد مهام</p>';
+    `).join('') : '<p style="text-align:center;color:#777">لا توجد مهام حالياً</p>';
 }
 
 function startTask(id, url, sec) {
@@ -113,12 +119,15 @@ async function completeTask(id, btn, oldText, reqSec) {
     const res = await fetch('/api/claim', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({userId, taskId:id}) });
     const json = await res.json();
     activeTaskId = null;
-    if(json.success) { showToast(json.msg); updateLocalBalance(json.newBalance || 5); setTimeout(()=>location.reload(), 1000); }
-    else { showToast(json.error, true); btn.disabled=false; btn.innerText=oldText; }
-}
-
-function updateLocalBalance(amount) {
-    // تحديث وهمي سريع
+    if(json.success) { 
+        showToast(json.msg); 
+        let bal = parseFloat(document.getElementById('balance').innerText);
+        document.getElementById('balance').innerText = (bal + 5).toFixed(2);
+        setTimeout(() => location.reload(), 1000); 
+    } else {
+        showToast(json.error, true);
+        btn.disabled = false; btn.innerText = oldText;
+    }
 }
 
 // 3. الإحالة
@@ -164,6 +173,17 @@ async function loadWallet() {
     const user = await res.json();
     document.getElementById('w-name').innerText = user.fullName;
     document.getElementById('w-acc').innerText = user.paymentAccount;
+}
+
+async function loadHistory() {
+    const res = await fetch(`/api/history/${userId}`);
+    const list = await res.json();
+    document.getElementById('hist-list').innerHTML = list.map(i => `
+        <div class="hist-item">
+            <div><div>${i.details}</div><small style="color:#777">${new Date(i.date).toLocaleDateString()}</small></div>
+            <div style="direction:ltr; font-weight:bold; color:${i.amount>0?'#10b981':'#ef4444'}">${i.amount}</div>
+        </div>
+    `).join('');
 }
 
 async function loadLeaderboard() {
