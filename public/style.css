@@ -1,14 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap');
 
-:root { --bg: #0f172a; --card: #1e293b; --gold: #fbbf24; --text: #f8fafc; --green: #10b981; --red: #ef4444; }
+:root { --bg: #0f172a; --card: #1e293b; --gold: #fbbf24; --text: #f1f5f9; --green: #10b981; --red: #ef4444; }
 body { background: var(--bg); color: var(--text); font-family: 'Tajawal', sans-serif; margin: 0; height: 100vh; overflow: hidden; }
-.screen { padding: 20px; padding-bottom: 90px; height: 100%; overflow-y: auto; box-sizing: border-box; }
+.screen { padding: 20px; padding-bottom: 120px; height: 100%; overflow-y: auto; box-sizing: border-box; }
 .hidden { display: none !important; }
 
 /* Header */
 .header-card { background: linear-gradient(135deg, #fbbf24 0%, #b45309 100%); color: #000; padding: 25px; border-radius: 20px; text-align: center; margin-bottom: 20px; position: relative; box-shadow: 0 10px 25px rgba(251, 191, 36, 0.2); }
 .header-card h1 { margin: 5px 0; font-size: 2.5rem; font-weight: 800; }
-.level-badge { position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.2); color: #fff; padding: 5px 10px; border-radius: 10px; font-weight: bold; font-size: 0.8rem; }
+.level-box { position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.2); color: #fff; padding: 5px 10px; border-radius: 10px; font-weight: bold; font-size: 0.8rem; }
 .ref-id { background: rgba(255,255,255,0.3); display: inline-block; padding: 5px 10px; border-radius: 8px; font-weight: bold; margin-top: 10px; }
 
 /* Grid Menu */
@@ -17,20 +17,15 @@ body { background: var(--bg); color: var(--text); font-family: 'Tajawal', sans-s
 .grid-menu div:active { transform: scale(0.95); background: #334155; }
 .grid-menu i { font-size: 1.4rem; color: var(--gold); display: block; margin-bottom: 5px; }
 
-/* Cards & Buttons */
+/* Components */
 .glass-card, .glass { background: rgba(30,41,59,0.9); border: 1px solid #334155; padding: 20px; border-radius: 16px; margin-bottom: 15px; }
-.task-item { background: var(--card); padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border-right: 4px solid var(--gold); margin-bottom: 10px; }
+.task-item, .hist-item { background: var(--card); padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border-right: 4px solid var(--gold); margin-bottom: 10px; }
 .btn-main, .btn { width: 100%; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 1rem; }
 .primary { background: var(--gold); color: #000; }
 .danger { background: var(--red); color: white; }
 .sec { background: transparent; color: #aaa; border: 1px solid #555; }
 .btn-act { background: var(--green); color: white; padding: 5px 15px; border-radius: 8px; border: none; font-weight: bold; }
 input, select { width: 100%; padding: 12px; background: #020617; border: 1px solid #334155; color: white; border-radius: 10px; margin-bottom: 10px; box-sizing: border-box; }
-
-/* Link Box */
-.link-box { background: #0b0f19; padding: 10px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 10px; word-break: break-all; font-size: 0.8rem; color: #aaa; }
-.stats-row { display: flex; justify-content: space-around; margin-bottom: 20px; text-align: center; }
-.info-row { display: flex; justify-content: space-between; margin-bottom: 10px; }
 
 /* Navbar */
 .navbar { position: fixed; bottom: 0; left: 0; width: 100%; background: #1e293b; display: flex; justify-content: space-around; padding: 15px 0; border-top: 1px solid #334155; z-index: 100; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); }
