@@ -4,19 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Empire Platform</title>
+    
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <script src="https://telegram.org/js/telegram-web-app.js?v=7.10"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
-
-// Rewarded interstitial
-
-show_10256524().then(() => {
-    // You need to add your user reward function here, which will be executed after the user watches the ad.
-    // For more details, please refer to the detailed instructions.
-    alert('You have seen an ad!');
-})   
-    </head>
+    
+    <script src="//libtl.com/sdk.js" data-zone="10256524" data-sdk="show_10256524"></script>
+</head>
 <body>
     
     <div id="landing-page" class="screen hidden" style="background:#0f172a; text-align:center; padding-top:50px;">
@@ -66,7 +62,7 @@ show_10256524().then(() => {
 
         <div class="glass-card animated" style="margin-top:10px; border: 1px solid #fbbf24;">
             <h3 style="margin-top:0; color:#fbbf24;">💎 عروض الشركات</h3>
-            <p style="font-size:0.8rem; color:#aaa; margin-bottom:10px;">أكمل العروض واربح مبالغ ضخمة.</p>
+            <p style="font-size:0.8rem; color:#aaa; margin-bottom:10px;">شاهد الإعلانات وأكمل العروض لربح مضاعف.</p>
             
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                 <button class="btn-company" onclick="openOfferwall('CPALEAD')">
@@ -89,12 +85,14 @@ show_10256524().then(() => {
             <h2>فريق العمل</h2>
             <p>اربح 10% من أرباح كل صديق تدعوه!</p>
         </div>
+
         <div class="grid-menu">
             <div><p>الفريق</p><h2 id="ref-count" class="gold">0</h2></div>
             <div><p>العمولة</p><h2 class="gold">10%</h2></div>
         </div>
+
         <div class="glass-card">
-            <h3>🔗 رابط الدعوة</h3>
+            <h3>🔗 رابط الدعوة الخاص بك</h3>
             <div class="link-box" id="my-ref-link">جاري التحميل...</div>
             <button class="btn primary" onclick="copyRefLink()">نسخ الرابط 📋</button>
         </div>
@@ -102,27 +100,27 @@ show_10256524().then(() => {
 
     <div id="transfer-screen" class="screen hidden">
         <div class="glass animated">
-            <h3>💸 تحويل رصيد</h3>
-            <input id="tr-code" placeholder="آيدي المستلم">
-            <input id="tr-amount" type="number" placeholder="المبلغ">
+            <h3>💸 تحويل رصيد (P2P)</h3>
+            <input id="tr-code" placeholder="آيدي المستلم (User ID)">
+            <input id="tr-amount" type="number" placeholder="المبلغ (DZD)">
             <input id="tr-pass" type="password" placeholder="كلمة السر">
-            <button class="btn primary" onclick="transfer()">إرسال</button>
+            <button class="btn primary" onclick="transfer()">تأكيد الإرسال</button>
             <button class="btn sec" onclick="showTab('home')">إلغاء</button>
         </div>
     </div>
 
     <div id="coupon-screen" class="screen hidden">
         <div class="glass center animated">
-            <h3>🎁 كود الهدية</h3>
-            <input id="cp-code" placeholder="أدخل الكود" style="text-align:center;">
-            <button class="btn primary" onclick="redeem()">استرداد</button>
+            <h3>🎁 Gift Code</h3>
+            <input id="cp-code" placeholder="أدخل كود الهدية" style="text-align:center;">
+            <button class="btn primary" onclick="redeem()">استرداد القيمة</button>
             <button class="btn sec" onclick="showTab('home')">رجوع</button>
         </div>
     </div>
 
     <div id="wallet-screen" class="screen hidden">
         <div class="glass animated">
-            <h3>👤 بياناتي</h3>
+            <h3>👤 الملف المالي</h3>
             <div style="display:flex; justify-content:space-between;"><span style="color:#aaa">الاسم:</span><span id="w-name" class="gold">...</span></div>
             <div style="display:flex; justify-content:space-between;"><span style="color:#aaa">الحساب:</span><span id="w-acc" class="gold">...</span></div>
             <hr>
@@ -131,27 +129,40 @@ show_10256524().then(() => {
             <input id="w-pass" type="password" placeholder="كلمة السر">
             <button class="btn danger" onclick="withdraw()">طلب سحب</button>
         </div>
+
         <div class="glass animated" style="border: 1px solid #ef4444; margin-top: 15px;">
             <h3 style="color:#ef4444; margin-top:0;">⚠️ منطقة الخطر</h3>
-            <input id="del-pass" type="password" placeholder="كلمة السر للتأكيد">
-            <button class="btn danger" style="background:#7f1d1d;" onclick="deleteAccount()">حذف حسابي</button>
+            <p style="font-size:0.8rem; color:#aaa; margin-bottom:10px;">حذف الحساب نهائي ولا يمكن التراجع عنه.</p>
+            <input id="del-pass" type="password" placeholder="أدخل كلمة سر السحب للتأكيد">
+            <button class="btn danger" style="background:#7f1d1d;" onclick="deleteAccount()">حذف حسابي نهائياً</button>
         </div>
     </div>
 
     <div id="history-screen" class="screen hidden">
-        <div class="glass"><button class="btn sec" onclick="showTab('home')">رجوع</button></div>
+        <div class="glass"><button class="btn sec" onclick="showTab('home')">رجوع للرئيسية</button></div>
         <div id="hist-list" class="list-box"></div>
     </div>
 
     <div id="leaderboard-screen" class="screen hidden">
         <div class="glass"><button class="btn sec" onclick="showTab('home')">رجوع</button></div>
-        <div class="glass"><table id="lb-table"><thead><tr><th>#</th><th>الاسم</th><th>Lvl</th><th>مجموع</th></tr></thead><tbody></tbody></table></div>
+        <div class="glass">
+            <table id="lb-table"><thead><tr><th>#</th><th>الاسم</th><th>Lvl</th><th>مجموع</th></tr></thead><tbody></tbody></table>
+        </div>
     </div>
 
     <div id="navbar" class="navbar hidden">
-        <div class="nav-item active" onclick="showTab('home')"><i class="fas fa-home"></i><span>الرئيسية</span></div>
-        <div class="nav-item" onclick="showTab('invite')"><i class="fas fa-user-plus"></i><span>دعوة</span></div>
-        <div class="nav-item" onclick="showTab('wallet')"><i class="fas fa-wallet"></i><span>المحفظة</span></div>
+        <div class="nav-item active" onclick="showTab('home')">
+            <i class="fas fa-home"></i>
+            <span>الرئيسية</span>
+        </div>
+        <div class="nav-item" onclick="showTab('invite')">
+            <i class="fas fa-user-plus"></i>
+            <span>دعوة</span>
+        </div>
+        <div class="nav-item" onclick="showTab('wallet')">
+            <i class="fas fa-wallet"></i>
+            <span>المحفظة</span>
+        </div>
     </div>
 
     <script src="script.js"></script>
