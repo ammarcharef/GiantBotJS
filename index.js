@@ -404,21 +404,20 @@ bot.start(async (ctx) => {
 });
 bot.launch().catch(err => console.log("Bot Error:", err));
 
-// API خاص لمكافآت إعلانات الفيديو (SDK)
-app.post('/api/claim_ad', async (req, res) => {
-    const { userId, amount } = req.body;
-    const user = await User.findOne({ id: userId });
-    
-    if (!user) return res.json({ error: "User not found" });
+// ... (أضف هذا مع باقي الـ APIs)
 
-    // إضافة الرصيد
-    // (يمكنك تحديد المبلغ هنا في السيرفر ليكون أكثر أماناً، مثلاً 2.00 دج ثابتة)
-    const safeAmount = 2.00; 
+// API خاص بمكافأة إعلانات Monetag
+app.post('/api/ad_reward', async (req, res) => {
+    const { userId } = req.body;
+    // إضافة 2 دينار مكافأة مشاهدة
+    await User.findOneAndUpdate({ id: userId }, { 
+        $inc: { balance: 2.00, totalEarned: 2.00, xp: 5 } 
+    });
     
-    user.balance += safeAmount;
-    user.totalEarned += safeAmount;
-    await user.save();
-
-    await logTrans(userId, 'ad_watch', safeAmount, 'مشاهدة إعلان');
+    // تسجيل المعاملة
+    await logTrans(userId, 'ad_view', 2.00, 'مشاهدة إعلان');
+    
     res.json({ success: true });
 });
+
+// ...
