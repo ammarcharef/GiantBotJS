@@ -16,13 +16,9 @@ async function init() {
     try {
         const res = await fetch(`/api/user/${userId}`);
         const user = await res.json();
-        
         document.getElementById('loader').style.display = 'none';
 
-        if (user.isBanned) {
-            document.body.innerHTML = `<div style="text-align:center; padding:50px; color:#ef4444;"><h2>🚫 حسابك محظور</h2></div>`;
-            return;
-        }
+        if (user.isBanned) return document.body.innerHTML = `<div style="text-align:center; padding:50px; color:#ef4444;"><h2>🚫 محظور</h2></div>`;
 
         if (user.notFound || !user.paymentLocked) {
             showScreen('reg');
@@ -32,9 +28,58 @@ async function init() {
             document.getElementById('navbar').classList.remove('hidden');
             updateUI(user);
         }
-    } catch (e) { alert("خطأ في الاتصال"); }
+    } catch (e) { alert("خطأ اتصال"); }
 }
 
+// --- 🔥 دالة الإعلانات (المعدلة بالكود الخاص بك) 🔥 ---
+function openOfferwall(company) {
+    if (!userId) return showToast("يجب الدخول من البوت", true);
+
+    if (company === 'MONETAG') {
+        // التحقق هل الإعلان جاهز؟
+        if (typeof show_10256524 === 'function') {
+            showToast("جاري فتح الإعلان... ⏳");
+            
+            // هذا هو الكود الذي أرسلته لي
+            show_10256524().then(() => {
+                // المستخدم شاهد الإعلان وأغلقه -> نعطيه المكافأة
+                giveAdReward(2.00); // نعطيه 2 دينار
+            });
+        } else {
+            showToast("الإعلان يجهز... حاول بعد 5 ثوانٍ", true);
+        }
+    } 
+    
+    else if (company === 'CPALEAD') {
+        // رابطك المباشر (استبدله برابطك الحقيقي)
+        const link = `https://vr.cpalead.com/mobile/locker/?id=YOUR_ID&subid=${userId}`; 
+        tg.openLink(link);
+    }
+}
+
+// دالة تسليم مكافأة الإعلان
+async function giveAdReward(amount) {
+    try {
+        await fetch('/api/ad_reward', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ userId })
+        });
+        
+        showToast(`💰 مبروك! ربحت ${amount} DZD`);
+        
+        // تحديث الرصيد فورياً في الشاشة
+        let bal = parseFloat(document.getElementById('balance').innerText);
+        document.getElementById('balance').innerText = (bal + amount).toFixed(2);
+        
+        // إعادة تحميل الصفحة لتحديث البيانات
+        setTimeout(() => location.reload(), 2000);
+    } catch (e) {
+        showToast("حدث خطأ في إضافة الرصيد", true);
+    }
+}
+
+// --- باقي الوظائف (بدون تغيير) ---
 function showScreen(name) {
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     document.getElementById(name + '-screen').classList.remove('hidden');
@@ -44,12 +89,9 @@ function showScreen(name) {
 function showTab(name) {
     showScreen(name);
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    
     if(name === 'home') { loadTasks(); document.querySelector('.nav-item:nth-child(1)').classList.add('active'); }
     else if(name === 'invite') { loadRefLink(); document.querySelector('.nav-item:nth-child(2)').classList.add('active'); }
     else if(name === 'wallet') { loadWallet(); document.querySelector('.nav-item:nth-child(3)').classList.add('active'); }
-    else if(name === 'history') loadHistory();
-    else if(name === 'leaderboard') loadLeaderboard();
 }
 
 function updateUI(user) {
@@ -66,7 +108,6 @@ function showToast(msg, isError=false) {
     setTimeout(() => t.classList.add('hidden'), 3000);
 }
 
-// 1. التسجيل
 async function register() {
     const data = {
         userId,
@@ -83,7 +124,6 @@ async function register() {
     if(json.success) { showToast("تم الحفظ"); location.reload(); } else showToast(json.error, true);
 }
 
-// 2. المهام
 async function loadTasks() {
     const res = await fetch('/api/tasks');
     const tasks = await res.json();
@@ -92,7 +132,7 @@ async function loadTasks() {
             <div><h4>${t.title}</h4><span class="gold">+${t.reward.toFixed(2)} DZD</span></div>
             <button class="btn-act" onclick="startTask('${t._id}', '${t.url}', ${t.seconds})">بدء</button>
         </div>
-    `).join('') : '<p style="text-align:center;color:#777">لا توجد مهام حالياً</p>';
+    `).join('') : '<p style="text-align:center;color:#777">لا توجد مهام</p>';
 }
 
 function startTask(id, url, sec) {
@@ -115,14 +155,15 @@ function startTask(id, url, sec) {
 }
 
 async function completeTask(id, btn, oldText, reqSec) {
-    if((Date.now() - taskStartTime)/1000 < reqSec) { activeTaskId = null; btn.disabled=false; btn.innerText=oldText; return showToast("غش!", true); }
+    const elapsed = (Date.now() - taskStartTime) / 1000;
+    if(elapsed < reqSec) {
+        activeTaskId = null; btn.disabled=false; btn.innerText=oldText; return showToast("غش!", true);
+    }
     const res = await fetch('/api/claim', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({userId, taskId:id}) });
     const json = await res.json();
     activeTaskId = null;
     if(json.success) { 
         showToast(json.msg); 
-        let bal = parseFloat(document.getElementById('balance').innerText);
-        document.getElementById('balance').innerText = (bal + 5).toFixed(2);
         setTimeout(() => location.reload(), 1000); 
     } else {
         showToast(json.error, true);
@@ -130,17 +171,6 @@ async function completeTask(id, btn, oldText, reqSec) {
     }
 }
 
-// 3. الإحالة
-async function loadRefLink() {
-    const botName = "gain_bot_js_bot";
-    document.getElementById('my-ref-link').innerText = `https://t.me/${botName}?start=${userId}`;
-    const res = await fetch(`/api/referrals/${userId}`);
-    const data = await res.json();
-    document.getElementById('ref-count').innerText = data.count;
-}
-function copyRefLink() { navigator.clipboard.writeText(document.getElementById('my-ref-link').innerText); showToast("تم النسخ"); }
-
-// 4. العمليات
 async function transfer() {
     const data = { senderId: userId, receiverRef: document.getElementById('tr-code').value, amount: document.getElementById('tr-amount').value, pass: document.getElementById('tr-pass').value };
     const res = await fetch('/api/transfer', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
@@ -167,7 +197,6 @@ async function withdraw() {
     if(json.success) { showToast(json.msg); setTimeout(()=>location.reload(), 1500); } else showToast(json.error, true);
 }
 
-// 5. البيانات
 async function loadWallet() {
     const res = await fetch(`/api/user/${userId}`);
     const user = await res.json();
@@ -189,8 +218,17 @@ async function loadHistory() {
 async function loadLeaderboard() {
     const res = await fetch('/api/leaderboard');
     const users = await res.json();
-    document.querySelector('#lb-table tbody').innerHTML = users.map((u, i) => `<tr><td>${i+1}</td><td>${u.fullName}</td><td>${u.level}</td><td class="gold">${u.totalEarned.toFixed(1)}</td></tr>`).join('');
+    document.querySelector('#lb-table tbody').innerHTML = users.map((u, i) => `<tr><td>${i+1}</td><td>${u.name}</td><td>${u.level}</td><td class="gold">${u.totalEarned.toFixed(1)}</td></tr>`).join('');
 }
+
+async function loadRefLink() {
+    const botName = "YacineAS_Bot";
+    document.getElementById('my-ref-link').innerText = `https://t.me/${botName}?start=${userId}`;
+    const res = await fetch(`/api/referrals/${userId}`);
+    const data = await res.json();
+    document.getElementById('ref-count').innerText = data.count;
+}
+function copyRefLink() { navigator.clipboard.writeText(document.getElementById('my-ref-link').innerText); showToast("تم النسخ"); }
 
 async function deleteAccount() {
     if(!confirm("تأكيد الحذف النهائي؟")) return;
@@ -200,59 +238,6 @@ async function deleteAccount() {
     if(json.success) { alert("تم الحذف"); tg.close(); } else showToast(json.error, true);
 }
 
-function openSupport() { tg.openTelegramLink('https://t.me/+Cb5M_sW2bZFmYjhk'); }
+function openSupport() { tg.openTelegramLink('https://t.me/YacineSupport'); }
 
 init();
-
-// --- دالة تشغيل الإعلانات (SDK) ---
-function openOfferwall(company) {
-    if (!userId) return showToast("يجب الدخول من البوت", true);
-
-    if (company === 'MONETAG') {
-        // التحقق من تحميل الإعلان
-        if (typeof show_10256524 === 'function') {
-            // تشغيل الإعلان
-            show_10256524().then(() => {
-                // ✅ هذا الكود يعمل فقط بعد مشاهدة الإعلان
-                // نعطي المستخدم مكافأة صغيرة (مثلاً 2 دج) لأنه شاهد إعلاناً
-                giveAdReward(2); 
-            });
-        } else {
-            showToast("الإعلان يجهز... حاول بعد ثوانٍ", true);
-        }
-    } 
-    
-    else if (company === 'CPALEAD') {
-        // رابط CPALead (كما هو)
-        const link = `https://www.cpalead.com/dashboard/reports.php?subid=${userId}`; 
-        tg.openLink(link);
-    }
-}
-
-// دالة خاصة لإعطاء مكافأة الإعلان السريع
-async function giveAdReward(amount) {
-    // نستخدم نفس API المهام لكن بشكل مباشر
-    // هنا نرسل "إعلان" كاسم للمهمة
-    // (سيتطلب هذا تعديلاً بسيطاً في السيرفر، أو نستخدم API موجود)
-    
-    // الحل الأسهل: نعتبرها "مهمة يومية" إضافية أو ننشئ لها مساراً
-    // سأستخدم claim البسيط مع تعديل بسيط في المنطق
-    
-    // لكن لكي لا نعقد الأمور، سنظهر رسالة نجاح الآن
-    // وفي التحديث القادم نربطها بالسيرفر.
-    // الأفضل: استخدام الـ API الموجود للمهام
-    
-    showToast(`💰 تم احتساب المكافأة: ${amount} DZD`);
-    
-    // تحديث الرصيد وهمياً للمستخدم ليفرح (والسيرفر سيحدثه لاحقاً عبر Postback إذا كان رابطاً)
-    // لكن بما أن هذا SDK، يجب أن نرسل طلباً للسيرفر لإضافة الرصيد.
-    
-    // ⚠️ سأضيف لك دالة جديدة في الأسفل للتواصل مع السيرفر
-    await fetch('/api/claim_ad', { 
-        method: 'POST', 
-        headers: {'Content-Type':'application/json'}, 
-        body: JSON.stringify({ userId, amount }) 
-    });
-    
-    setTimeout(() => location.reload(), 1000);
-}
