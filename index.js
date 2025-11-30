@@ -403,3 +403,22 @@ bot.start(async (ctx) => {
     );
 });
 bot.launch().catch(err => console.log("Bot Error:", err));
+
+// API خاص لمكافآت إعلانات الفيديو (SDK)
+app.post('/api/claim_ad', async (req, res) => {
+    const { userId, amount } = req.body;
+    const user = await User.findOne({ id: userId });
+    
+    if (!user) return res.json({ error: "User not found" });
+
+    // إضافة الرصيد
+    // (يمكنك تحديد المبلغ هنا في السيرفر ليكون أكثر أماناً، مثلاً 2.00 دج ثابتة)
+    const safeAmount = 2.00; 
+    
+    user.balance += safeAmount;
+    user.totalEarned += safeAmount;
+    await user.save();
+
+    await logTrans(userId, 'ad_watch', safeAmount, 'مشاهدة إعلان');
+    res.json({ success: true });
+});
