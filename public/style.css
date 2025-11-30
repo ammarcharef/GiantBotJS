@@ -40,10 +40,26 @@ table { width: 100%; border-collapse: collapse; } td, th { padding: 10px; border
 @keyframes spin { 100% { transform: rotate(360deg); } }
 .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--green); color: white; padding: 10px 20px; border-radius: 20px; z-index: 2000; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
 .toast.error { background: var(--red); }
+
+/* تصميم أزرار الشركات */
 .btn-company {
-    background: #1e293b; border: 1px solid #334155; color: white;
-    padding: 15px; border-radius: 12px; font-weight: bold; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; gap: 10px;
+    background: #1e293b; 
+    border: 1px solid #475569; 
+    color: white;
+    padding: 15px; 
+    border-radius: 12px; 
+    font-weight: bold; 
+    cursor: pointer;
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    gap: 10px;
     transition: 0.2s;
+    font-size: 0.9rem;
 }
-.btn-company:active { transform: scale(0.95); background: #334155; }
+.btn-company:active { 
+    transform: scale(0.95); 
+    background: #334155; 
+    border-color: #fbbf24;
+}
+.btn-company i { font-size: 1.2rem; }
