@@ -1,79 +1,58 @@
-<!DOCTYPE html>
-<html dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Master Admin</title>
-    <link rel="stylesheet" href="style.css">
-    <style>
-        body { overflow-y: auto !important; height: auto !important; background: #000; padding: 15px; }
-        .glass { background: #111; border: 1px solid #333; margin-bottom: 20px; padding: 15px; border-radius: 10px; }
-        input, button { border-radius: 5px; padding: 10px; width: 100%; margin: 5px 0; box-sizing: border-box; }
-        .grid-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-        .stat-box { background: #222; padding: 10px; border-radius: 8px; text-align: center; border: 1px solid #444; }
-        .action-btn { padding: 5px 10px; width: auto; display: inline-block; margin-left: 5px; }
-    </style>
-</head>
-<body>
-    <div style="max-width:900px; margin:auto;">
-        <div class="glass" style="display:flex; justify-content:space-between; align-items:center;">
-            <h2 style="color:white; margin:0;">👑 الإمبراطور</h2>
-            <div><input type="password" id="pass" placeholder="كلمة السر" style="width:120px;"><button class="btn-act" style="width:auto;" onclick="auth()">دخول</button></div>
+<div class="glass" style="border: 1px solid #fbbf24;">
+    <h3 style="color:#fbbf24; margin-top:0;">⚙️ إعدادات Adsterra والأسعار</h3>
+    
+    <label style="color:#ccc; font-size:0.9rem;">رابط الإعلان المباشر (Direct Link):</label>
+    <input id="conf-link" placeholder="https://...">
+    
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
+        <div>
+            <label style="color:#ccc; font-size:0.9rem;">سعر النقرة (USD)</label>
+            <input id="conf-price" type="number" placeholder="0.002">
         </div>
-
-        <div id="panel" class="hidden">
-            <div class="grid-stats">
-                <div class="stat-box">👥 الأعضاء <br><span id="s-usr" class="gold">0</span></div>
-                <div class="stat-box">💸 سحب معلق <br><span id="s-wth" class="red">0</span></div>
-                <div class="stat-box">🔗 إحالات <span id="s-refs" class="gold">0</span></div>
-            </div>
-
-            <div class="glass">
-                <h3>👤 المستخدمين</h3>
-                <input type="text" id="search-user" placeholder="🔍 بحث..." onkeyup="filterUsers()">
-                <div style="max-height: 300px; overflow-y: auto;"><table id="users-table"><thead><tr><th>المستخدم</th><th>الرصيد</th><th>الحالة</th><th>تحكم</th></tr></thead><tbody></tbody></table></div>
-            </div>
-
-            <div class="glass">
-                <h3>➕ مهمة جديدة</h3>
-                <input id="t-title" placeholder="العنوان"><input id="t-url" placeholder="الرابط">
-                <div style="display:flex; gap:5px;"><input id="t-price" type="number" placeholder="السعر"><input id="t-sec" type="number" placeholder="ثواني"></div>
-                <button class="btn-act" onclick="addTask()">نشر</button>
-            </div>
-
-            <div class="glass">
-                <h3>🎟️ كوبون</h3>
-                <div style="display:flex; gap:5px;"><input id="c-code" placeholder="الكود"><input id="c-amnt" type="number" placeholder="المبلغ"></div>
-                <input id="c-max" type="number" placeholder="العدد">
-                <button class="btn-act" onclick="addCoupon()">إنشاء</button>
-            </div>
-
-            <div class="glass"><h3>💸 السحوبات</h3><div id="w-list"></div></div>
+        <div>
+            <label style="color:#ccc; font-size:0.9rem;">سعر الصرف (1$ = DZD)</label>
+            <input id="conf-rate" type="number" placeholder="220">
         </div>
     </div>
+    
+    <button class="btn-act" onclick="saveSettings()">حفظ التعديلات 💾</button>
+</div>
 
-    <script>
-        let pass = "", allUsers = [];
-        async function auth() { pass = document.getElementById('pass').value; loadData(); }
-        async function loadData() {
-            const res = await fetch('/api/admin', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pass, action: 'data'}) });
-            const data = await res.json();
-            if(data.error) return alert("❌");
-            document.getElementById('panel').classList.remove('hidden');
-            document.getElementById('s-usr').innerText = data.stats.users;
-            document.getElementById('s-wth').innerText = data.stats.withdraws;
-            let totalRefs = 0; if(data.usersList) data.usersList.forEach(u => { if(u.referrer) totalRefs++; }); document.getElementById('s-refs').innerText = totalRefs;
-            allUsers = data.usersList || []; renderUsers(allUsers);
-            document.getElementById('w-list').innerHTML = data.withdrawals.map(w => `<div style="border-bottom:1px solid #333; padding:10px 0; display:flex; justify-content:space-between;"><div><b>${w.amount} DZD</b><br><small style="color:#aaa">${w.userName}</small></div><div><button class="action-btn btn-act" onclick="proc('${w._id}','paid')">دفع</button><button class="action-btn btn-danger" onclick="proc('${w._id}','rejected')">رفض</button></div></div>`).join('');
+<script>
+    // ... (الكود السابق) ...
+
+    async function loadData() {
+        // طلب جديد لجلب الإعدادات
+        const res = await fetch('/api/admin', { 
+            method: 'POST', headers: {'Content-Type':'application/json'}, 
+            body: JSON.stringify({password: pass, action: 'get_settings'}) 
+        });
+        const data = await res.json();
+        if(data.error) return alert("Wrong Pass");
+
+        document.getElementById('panel').classList.remove('hidden');
+        
+        // ملء الخانات بالبيانات الحالية
+        if (data.settings) {
+            document.getElementById('conf-link').value = data.settings.adsterra_link;
+            document.getElementById('conf-price').value = data.settings.ad_price_usd;
+            document.getElementById('conf-rate').value = data.settings.usd_to_dzd;
         }
-        function renderUsers(users) {
-            document.querySelector('#users-table tbody').innerHTML = users.map(u => `<tr><td><b>${u.fullName||u.name}</b><br><small>${u.id}</small></td><td class="gold">${u.balance.toFixed(2)}</td><td>${u.isBanned?'⛔':'✅'}</td><td><button class="action-btn btn-danger" onclick="manage('${u.id}','ban')">${u.isBanned?'فك':'حظر'}</button><button class="action-btn" style="background:#555;color:#fff" onclick="manage('${u.id}','delete')">X</button></td></tr>`).join('');
-        }
-        function filterUsers() { const term = document.getElementById('search-user').value.toLowerCase(); renderUsers(allUsers.filter(u => (u.name && u.name.toLowerCase().includes(term)) || (u.id && u.id.toString().includes(term)))); }
-        async function manage(id, type) { if(!confirm("تأكيد؟")) return; await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pass, action:'manage_user', payload:{id, type}}) }); loadData(); }
-        async function addTask() { const payload = { title: document.getElementById('t-title').value, url: document.getElementById('t-url').value, fullPrice: document.getElementById('t-price').value, seconds: document.getElementById('t-sec').value }; await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pass, action:'add_task', payload}) }); alert("تم"); }
-        async function addCoupon() { const payload = { code: document.getElementById('c-code').value, amount: document.getElementById('c-amnt').value, maxUses: document.getElementById('c-max').value }; await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pass, action:'add_coupon', payload}) }); alert("تم"); }
-        async function proc(id, status) { if(!confirm("تأكيد؟")) return; await fetch('/api/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pass, action:'process_withdraw', payload:{id, status}}) }); loadData(); }
-    </script>
-</body>
-</html>
+        
+        // ... (استدعاء باقي البيانات: المستخدمين والسحوبات) ...
+        // يمكنك عمل زر منفصل لجلب المستخدمين لكي لا تثقل الصفحة
+    }
+
+    async function saveSettings() {
+        const payload = {
+            link: document.getElementById('conf-link').value,
+            price: document.getElementById('conf-price').value,
+            rate: document.getElementById('conf-rate').value
+        };
+        await fetch('/api/admin', { 
+            method: 'POST', headers: {'Content-Type':'application/json'}, 
+            body: JSON.stringify({password: pass, action: 'update_settings', payload}) 
+        });
+        alert("✅ تم تحديث النظام المالي!");
+    }
+</script>
